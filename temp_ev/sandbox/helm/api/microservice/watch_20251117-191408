@@ -1,0 +1,19 @@
+Every 2.0s: kubectl get pods -n ev-charging-sandbox                                                                                                  Manendras-MacBook-Pro.local: 19:14:07
+                                                                                                                                                                             in 0.102s (0)
+NAME                                                              READY   STATUS             RESTARTS        AGE                                                                          
+ev-charging-mock-bap-rabbitmq-66575459fb-zl2qk                    0/1     CrashLoopBackOff   6 (4m15s ago)   10m                                                                          
+ev-charging-mock-bpp-rabbitmq-59c7f46cf6-9j9k4                    0/1     CrashLoopBackOff   6 (4m10s ago)   10m                                                                          
+ev-charging-mock-cds-86c98d8cf-ndn4z                              1/1     Running            0               10m                                                                          
+ev-charging-mock-registry-5f899985cf-f4dgt                        1/1     Running            0               10m                                                                          
+ev-charging-rabbitmq-bap-onix-rabbitmq-bap-84ff4b5f9-fq848        0/1     CrashLoopBackOff   6 (4m24s ago)   10m                                                                          
+ev-charging-rabbitmq-bap-onix-rabbitmq-rabbitmq-699cc955ddttlsp   1/1     Running            0               10m                                                                          
+ev-charging-rabbitmq-bap-onix-rabbitmq-redis-bap-784bdf574fgfm9   1/1     Running            0               10m                                                                          
+ev-charging-rabbitmq-bpp-onix-rabbitmq-bpp-9f59799f7-hwfc8        0/1     CrashLoopBackOff   6 (4m34s ago)   10m                                                                          
+ev-charging-rabbitmq-bpp-onix-rabbitmq-rabbitmq-5446b4584cw927r   1/1     Running            0               10m                                                                          
+ev-charging-rabbitmq-bpp-onix-rabbitmq-redis-bpp-b7797fb45vcntv   1/1     Running            0               10m                                                                          
+                                                                                                                                                                                          
+                                                                                                                                                                                          
+                                                                                                                                                                                          
+                                                                                                                                                                                          
+                                                                                                                                                                                          
+                                                                                                                                                                                          

@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "onix-rabbitmq.fullname" . }}-{{ .Values.component }}-config
+  labels:
+    {{- include "onix-rabbitmq.labels" . | nindent 4 }}
+    component: {{ .Values.component }}
+data:
+  adapter.yaml: |
+{{- $fullname := include "onix-rabbitmq.fullname" . }}
+{{- /* Construct Redis hostname - use default pattern matching component */}}
+{{- $redisHost := printf "%s-redis-%s" $fullname .Values.component }}
+{{- $redisPort := int (.Values.redis.service.port | default 6379) }}
+{{- $redisAddr := printf "%s:%d" $redisHost $redisPort }}
+{{- /* Construct RabbitMQ broker address */}}
+{{- $rabbitmqBroker := .Values.rabbitmq.broker }}
+{{- if not $rabbitmqBroker }}
+{{- if .Values.rabbitmq.enabled }}
+{{- $rabbitmqPort := int (.Values.rabbitmq.service.amqpPort | default 5672) }}
+{{- $rabbitmqBroker = printf "%s-rabbitmq:%d" $fullname $rabbitmqPort }}
+{{- else }}
+{{- /* If RabbitMQ is disabled, use BAP's RabbitMQ service */}}
+{{- $rabbitmqBroker = "ev-charging-rabbitmq-bap-onix-rabbitmq-rabbitmq:5672" }}
+{{- end }}
+{{- end }}
+{{- /* Replace Redis addresses - replace both redis-bap and redis-bpp with the correct Redis address for this component */}}
+{{- $adapterConfig := .Values.config.adapter }}
+{{- /* Replace all occurrences of redis-bap:6379 and redis-bpp:6379 with the component-specific Redis address */}}
+{{- /* Replace redis-bpp first to avoid potential issues with replacement order */}}
+{{- $adapterConfig = $adapterConfig | replace "redis-bpp:6379" $redisAddr }}
+{{- $adapterConfig = $adapterConfig | replace "redis-bap:6379" $redisAddr }}
+{{- /* Replace RabbitMQ addresses */}}
+{{- $adapterConfig = $adapterConfig | replace "rabbitmq:5672" $rabbitmqBroker }}
+{{- /* Replace RabbitMQ credentials */}}
+{{- $adapterConfig = $adapterConfig | replace "username: guest" "username: admin" }}
+{{- $adapterConfig = $adapterConfig | replace "password: guest" "password: admin" }}
+{{- /* Replace retry configuration values */}}
+{{- $retryMax := int (.Values.retry.registry.maxRetries | default 3) }}
+{{- $retryWaitMin := .Values.retry.registry.waitMin | default "100ms" }}
+{{- $retryWaitMax := .Values.retry.registry.waitMax | default "500ms" }}
+{{- $adapterConfig = $adapterConfig | replace "retry_max: 3" (printf "retry_max: %d" $retryMax) }}
+{{- $adapterConfig = $adapterConfig | replace "retry_wait_min: 100ms" (printf "retry_wait_min: %s" $retryWaitMin) }}
+{{- $adapterConfig = $adapterConfig | replace "retry_wait_max: 500ms" (printf "retry_wait_max: %s" $retryWaitMax) }}
+{{- /* Replace routing config paths based on component */}}
+{{- if eq .Values.component "bpp" }}
+{{- $adapterConfig = $adapterConfig | replace "/onix-bap/" "/onix-bpp/" }}
+{{- $adapterConfig = $adapterConfig | replace "bapTxnReciever" "bppTxnReciever" }}
+{{- $adapterConfig = $adapterConfig | replace "bapTxnCaller" "bppTxnCaller" }}
+{{- /* Replace role from bap to bpp */}}
+{{- $adapterConfig = $adapterConfig | replace "role: bap" "role: bpp" }}
+{{- /* Replace subscriber ID from BAP to BPP */}}
+{{- $adapterConfig = $adapterConfig | replace "subscriberId: ev-charging.sandbox1.com" "subscriberId: ev-charging.sandbox2.com" }}
+{{- /* Replace HTTP port from 8001 to 8002 for BPP */}}
+{{- $adapterConfig = $adapterConfig | replace "port: 8001" "port: 8002" }}
+{{- /* Replace queue name from bap_caller_queue to bpp_caller_queue */}}
+{{- $adapterConfig = $adapterConfig | replace "consumer.queueName: \"bap_caller_queue\"" "consumer.queueName: \"bpp_caller_queue\"" }}
+{{- /* Replace routing keys from bap.* to bpp.on_* */}}
+{{- $adapterConfig = $adapterConfig | replace "consumer.routingKeys: \"bap.discover,bap.select,bap.init,bap.confirm,bap.status,bap.track,bap.cancel,bap.update,bap.rating,bap.support\"" "consumer.routingKeys: \"bpp.on_discover,bpp.on_select,bpp.on_init,bpp.on_confirm,bpp.on_status,bpp.on_track,bpp.on_cancel,bpp.on_update,bpp.on_rating,bpp.on_support\"" }}
+{{- end }}
+{{- /* Fix any duplication that might have occurred - replace fullname-redis-component pattern if duplicated */}}
+{{- $duplicatedPattern := printf "%s-%s-redis-%s" $fullname $fullname .Values.component }}
+{{- if contains $duplicatedPattern $adapterConfig }}
+{{- $adapterConfig = $adapterConfig | replace $duplicatedPattern $redisHost }}
+{{- end }}
+{{ $adapterConfig | indent 4 }}
+  {{- if eq .Values.component "bap" }}
+  bapTxnCaller-routing.yaml: |
+{{ .Values.config.routing.caller | indent 4 }}
+  bapTxnReciever-routing.yaml: |
+{{ .Values.config.routing.receiver | indent 4 }}
+  {{- else }}
+  bppTxnCaller-routing.yaml: |
+{{ .Values.config.routing.caller | indent 4 }}
+  bppTxnReciever-routing.yaml: |
+{{ .Values.config.routing.receiver | indent 4 }}
+  {{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "onix-rabbitmq.fullname" . }}-schemas
+  labels:
+    {{- include "onix-rabbitmq.labels" . | nindent 4 }}
+data:
+  # Note: In production, you may want to use a PersistentVolume or initContainer
+  # to populate schemas from your schemas directory
+  # For now, this is a placeholder - you'll need to populate it with actual schema files
+  .gitkeep: ""
+

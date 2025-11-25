@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  redis-onix-bap:
+    image: redis:alpine
+    container_name: redis-onix-bap
+    ports:
+      - "6379:6379"
+    networks:
+      - onix-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  onix-bap-plugin:
+    # Use pre-built image from Docker Hub
+    image: manendrapalsingh/onix-bap-plugin:latest
+    container_name: onix-bap-plugin
+    ports:
+      - "8001:8001"
+    volumes:
+      # Mount config directory (writable for symlink creation, but original files won't be modified)
+      - ./config/onix-bap:/app/config/onix-bap
+      # Mount adapter.yaml directly to expected location
+      - ./config/onix-bap/adapter.yaml:/app/config/adapter.yaml:ro
+      # Mount schema directory (read-only)
+      - ../../../schemas:/app/schemas:ro
+    environment:
+      - CONFIG_FILE=/app/config/adapter.yaml
+    restart: unless-stopped
+    depends_on:
+      redis-onix-bap:
+        condition: service_healthy
+    networks:
+      - onix-network
+
+networks:
+  onix-network:
+    driver: bridge

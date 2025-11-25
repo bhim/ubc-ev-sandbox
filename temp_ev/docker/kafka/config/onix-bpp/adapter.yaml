@@ -1,0 +1,185 @@
+appName: "bpp-ev-charging"
+
+log:
+  level: debug
+  destinations:
+    - type: stdout
+  contextKeys:
+    - transaction_id
+    - message_id
+    - subscriber_id
+    - module_id
+
+# HTTP configuration is required for bppTxnReceiver to receive HTTP requests from BAP-ONIX plugin
+# The bppTxnReceiver module uses handler type "std" which requires HTTP server
+http:
+  port: 8002
+  timeout:
+    read: 30
+    write: 30
+    idle: 30
+
+pluginManager:
+  root: /app/plugins
+
+modules:
+  # BPP Receiver - Receives HTTP requests from BAP-ONIX and publishes to BPP Backend via Kafka
+  # Phase 1: Receives discover from CDS
+  # Phase 2+: Receives other requests (select, init, confirm, etc.) from BAP-ONIX
+  - name: bppTxnReceiver
+    path: /bpp/receiver/
+    handler:
+      type: std
+      role: bpp
+      subscriberId: ev-charging.sandbox2.com
+      httpClientConfig:
+        maxIdleConns: 1000
+        maxIdleConnsPerHost: 200
+        idleConnTimeout: 300s
+        responseHeaderTimeout: 5s
+      plugins:
+        registry:
+          id: registry
+          config:
+            url: http://mock-registry:3030
+            retry_max: 3
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+        keyManager:
+          id: simplekeymanager
+          config:
+            networkParticipant: ev-charging.sandbox2.com
+            keyId: bpp-key-1
+            signingPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+            signingPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+            encrPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+            encrPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+        cache:
+          id: cache
+          config:
+            addr: redis-bpp:6379
+        schemaValidator:
+          id: schemavalidator
+          config:
+            schemaDir: /app/schemas
+        signValidator:
+          id: signvalidator
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/message-baised/kafka/onix-bpp/bppTxnReciever-routing.yaml
+        publisher:
+          id: publisher
+          config:
+            type: kafka
+            brokers: kafka:9092
+            topic: bpp.default
+            compressionCodec: snappy
+            acks: all
+            admin.enabled: "on"
+            admin.topicSpecs: '[{"topic":"bpp.discover","numPartitions":1,"replicationFactor":1},{"topic":"bpp.select","numPartitions":1,"replicationFactor":1},{"topic":"bpp.init","numPartitions":1,"replicationFactor":1},{"topic":"bpp.confirm","numPartitions":1,"replicationFactor":1},{"topic":"bpp.status","numPartitions":1,"replicationFactor":1},{"topic":"bpp.track","numPartitions":1,"replicationFactor":1},{"topic":"bpp.cancel","numPartitions":1,"replicationFactor":1},{"topic":"bpp.update","numPartitions":1,"replicationFactor":1},{"topic":"bpp.rating","numPartitions":1,"replicationFactor":1},{"topic":"bpp.support","numPartitions":1,"replicationFactor":1},{"topic":"bpp.default","numPartitions":1,"replicationFactor":1}]'
+        middleware:
+          - id: reqpreprocessor
+            config:
+              uuidKeys: transaction_id,message_id
+              role: bpp
+      steps:
+        - validateSign
+        - validateSchema
+        - addRoute
+
+  # BPP Caller - Consumes callbacks from BPP Backend via Kafka and routes them outward
+  # Phase 1: Routes on_discover response to CDS
+  # Phase 2+: Routes other responses to BAP-ONIX
+  - name: bppTxnCaller
+    path: ""  # path is not used for queue handlers
+    handler:
+      type: queue
+      role: bpp
+      subscriberId: ev-charging.sandbox2.com
+      httpClientConfig:
+        maxIdleConns: 1000
+        maxIdleConnsPerHost: 200
+        idleConnTimeout: 300s
+        responseHeaderTimeout: 5s
+      plugins:
+        registry:
+          id: registry
+          config:
+            url: http://mock-registry:3030
+            retry_max: 3
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+        keyManager:
+          id: simplekeymanager
+          config:
+            networkParticipant: ev-charging.sandbox2.com
+            keyId: bpp-key-1
+            signingPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+            signingPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+            encrPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+            encrPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+        cache:
+          id: cache
+          config:
+            addr: redis-bpp:6379
+        schemaValidator:
+          id: schemavalidator
+          config:
+            schemaDir: /app/schemas
+        consumer:
+          id: consumer
+          config:
+            subscriberId: ev-charging.sandbox2.com
+            role: bpp
+            consumerType: kafka
+            consumerThreads: "2"
+            consumer.id: kafkaconsumer
+            consumer.brokers: kafka:9092
+            consumer.topics: "bpp.on_discover,bpp.on_select,bpp.on_init,bpp.on_confirm,bpp.on_status,bpp.on_track,bpp.on_cancel,bpp.on_update,bpp.on_rating,bpp.on_support"
+            consumer.groupId: bpp_caller_group
+            consumer.autoCommit: "false"
+            consumer.maxRetry: "3"
+            consumer.useTLS: "false"
+            consumer.tlsInsecureSkipVerify: "false"
+            consumer.tlsCAFile: ""
+            consumer.tlsCertFile: ""
+            consumer.tlsKeyFile: ""
+            consumer.dialTimeout: "10s"
+            consumer.sessionTimeout: "30s"
+            consumer.heartbeatInterval: "3s"
+            consumer.maxPollInterval: "5m"
+            consumer.maxPollRecords: "500"
+            consumer.rebalanceTimeout: "30s"
+            consumer.startOffset: "latest"
+            consumer.readBackoffMin: "100ms"
+            consumer.readBackoffMax: "1s"
+            consumer.admin.enabled: "on"
+            consumer.admin.topicSpecs: '[{"topic":"bpp.on_discover","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_select","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_init","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_confirm","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_status","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_track","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_cancel","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_update","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_rating","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_support","numPartitions":1,"replicationFactor":1}]'
+            steps: '["addRoute", "validateSchema", "sign"]'
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/message-baised/kafka/onix-bpp/bppTxnCaller-routing.yaml
+        publisher:
+          id: publisher
+          config:
+            type: kafka
+            brokers: kafka:9092
+            topic: bpp.default
+            compressionCodec: snappy
+            acks: all
+            admin.enabled: "on"
+            admin.topicSpecs: '[{"topic":"bpp.default","numPartitions":1,"replicationFactor":1}]'
+        signer:
+          id: signer
+        middleware:
+          - id: reqpreprocessor
+            config:
+              uuidKeys: transaction_id,message_id
+              role: bpp
+      steps:
+        - validateSchema
+        - addRoute
+        - sign
+

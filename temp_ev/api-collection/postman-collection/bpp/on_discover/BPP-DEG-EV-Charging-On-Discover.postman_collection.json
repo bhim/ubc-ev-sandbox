@@ -1,0 +1,56 @@
+{
+	"info": {
+		"_postman_id": "65d469fe-b469-40f7-b7f9-0479fc855cef",
+		"name": "BPP-DEG:EV-Charging-On-Discover",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30848972"
+	},
+	"item": [
+		{
+			"name": "on_discover",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"context\": {\n    \"version\": \"{{version}}\",\n    \"action\": \"on_discover\",\n    \"domain\": \"{{domain}}\",\n    \"location\": {\n      \"country\": {\n        \"code\": \"IND\"\n      },\n      \"city\": {\n        \"code\": \"std:080\"\n      }\n    },\n    \"bap_id\": \"{{bap_id}}\",\n    \"bap_uri\": \"{{bap_uri}}\",\n    \"bpp_id\": \"{{bpp_id}}\",\n    \"bpp_uri\": \"{{bpp_uri}}\",\n    \"transaction_id\": \"{{transaction_id}}\",\n    \"message_id\": \"{{$guid}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"ttl\": \"PT30S\",\n    \"schema_context\": [\n      \"https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld\"\n    ]\n  },\n  \"message\": {\n    \"catalogs\": [\n      {\n        \"@context\": \"https://becknprotocol.io/schemas/core/v2/Catalog/schema-context.jsonld\",\n        \"@type\": \"beckn:Catalog\",\n        \"beckn:descriptor\": {\n          \"name\": \"EV Charging Services Catalog\"\n        },\n        \"beckn:provider\": {\n          \"@context\": \"https://becknprotocol.io/schemas/core/v2/Party/schema-context.jsonld\",\n          \"@type\": \"beckn:Party\",\n          \"beckn:id\": \"ecopower-charging\",\n          \"beckn:descriptor\": {\n            \"name\": \"EcoPower Charging\",\n            \"short_desc\": \"Sustainable EV charging solutions\"\n          },\n          \"beckn:address\": {\n            \"area_code\": \"560001\",\n            \"city\": {\n              \"code\": \"std:080\"\n            },\n            \"state\": {\n              \"code\": \"KAR\"\n            },\n            \"country\": {\n              \"code\": \"IND\"\n            }\n          },\n          \"beckn:contact\": [\n            {\n              \"phone\": \"+91-80-12345678\",\n              \"email\": \"support@ecopower.com\"\n            }\n          ]\n        },\n        \"beckn:items\": [\n          {\n            \"@context\": \"https://becknprotocol.io/schemas/core/v2/Item/schema-context.jsonld\",\n            \"@type\": \"beckn:Item\",\n            \"beckn:id\": \"ev-charger-ccs2-001\",\n            \"beckn:descriptor\": {\n              \"name\": \"DC Fast Charger - CCS2 (60kW)\",\n              \"short_desc\": \"High-speed DC charging with CCS2 connector\"\n            },\n            \"beckn:category\": {\n              \"@type\": \"beckn:Category\",\n              \"id\": \"EV_CHARGING\",\n              \"descriptor\": {\n                \"name\": \"EV Charging Station\"\n              }\n            },\n            \"beckn:itemAttributes\": {\n              \"@type\": \"ChargingService\",\n              \"connectorType\": \"CCS2\",\n              \"maxPowerKW\": 60,\n              \"minPowerKW\": 10,\n              \"socketCount\": 2,\n              \"powerType\": \"DC\",\n              \"connectorFormat\": \"CCS2\",\n              \"chargingSpeed\": \"FAST\",\n              \"reservationSupported\": true,\n              \"paymentAccepted\": [\"UPI\", \"Card\", \"Wallet\"],\n              \"stationStatus\": \"Available\",\n              \"evseId\": \"IN*PG*IND*01*TYPE2*A\",\n              \"ocppVersion\": \"2.0.1\"\n            },\n            \"beckn:availableAt\": [\n              {\n                \"@type\": \"beckn:Location\",\n                \"geo\": {\n                  \"type\": \"Point\",\n                  \"coordinates\": [77.5946, 12.9716]\n                },\n                \"address\": {\n                  \"full\": \"MG Road, Bengaluru, Karnataka 560001, India\",\n                  \"area_code\": \"560001\",\n                  \"city\": {\n                    \"code\": \"std:080\"\n                  },\n                  \"state\": {\n                    \"code\": \"KAR\"\n                  },\n                  \"country\": {\n                    \"code\": \"IND\"\n                  }\n                }\n              }\n            ],\n            \"beckn:offers\": [\n              {\n                \"@context\": \"https://becknprotocol.io/schemas/core/v2/Offer/schema-context.jsonld\",\n                \"@type\": \"beckn:Offer\",\n                \"beckn:id\": \"offer-ccs2-60kw-kwh\",\n                \"beckn:descriptor\": {\n                  \"name\": \"Per-kWh Tariff - CCS2 60kW\"\n                },\n                \"beckn:price\": {\n                  \"currency\": \"INR\",\n                  \"value\": 18.0,\n                  \"applicableQuantity\": {\n                    \"unitText\": \"Kilowatt Hour\",\n                    \"unitCode\": \"KWH\",\n                    \"unitQuantity\": 1\n                  }\n                },\n                \"beckn:validity\": {\n                  \"@type\": \"beckn:TimePeriod\",\n                  \"schema:startDate\": \"2024-10-01T00:00:00Z\",\n                  \"schema:endDate\": \"2025-01-15T23:59:59Z\"\n                },\n                \"beckn:acceptedPaymentMethod\": [\"UPI\", \"Card\", \"Wallet\"],\n                \"beckn:offerAttributes\": {\n                  \"@type\": \"ChargingOffer\",\n                  \"buyerFinderFee\": {\n                    \"feeType\": \"PERCENTAGE\",\n                    \"feeValue\": 2.5\n                  },\n                  \"idleFeePolicy\": \"₹2/min after 10 min post-charge\"\n                }\n              }\n            ],\n            \"beckn:rating\": {\n              \"value\": 4.5,\n              \"count\": 234\n            }\n          }\n        ]\n      }\n    ]\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{on_discover_url}}",
+					"host": [
+						"{{on_discover_url}}"
+					],
+					"path": []
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		}
+	]
+}
+

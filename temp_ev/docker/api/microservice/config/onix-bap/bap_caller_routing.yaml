@@ -1,0 +1,86 @@
+# ONIX BAP Caller Routing Configuration
+# Microservice Architecture: Routes to onix-bpp-plugin, which then routes to different mock BPP services
+
+routingRules:
+  # Phase 1: Discover to CDS
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-cds:8082/csd
+      excludeAction: false
+    endpoints:
+      - discover
+
+  # Phase 2+: Each endpoint routes to onix-bpp-plugin receiver, which then routes to different mock BPP services
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://onix-bpp-plugin:8002/bpp/receiver/select
+      excludeAction: false
+    endpoints:
+      - select
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://onix-bpp-plugin:8002/bpp/receiver/init
+      excludeAction: false
+    endpoints:
+      - init
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://onix-bpp-plugin:8002/bpp/receiver/confirm
+      excludeAction: false
+    endpoints:
+      - confirm
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://onix-bpp-plugin:8002/bpp/receiver/update
+      excludeAction: false
+    endpoints:
+      - update
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://onix-bpp-plugin:8002/bpp/receiver/track
+      excludeAction: false
+    endpoints:
+      - track
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://onix-bpp-plugin:8002/bpp/receiver/cancel
+      excludeAction: false
+    endpoints:
+      - cancel
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://onix-bpp-plugin:8002/bpp/receiver/rating
+      excludeAction: false
+    endpoints:
+      - rating
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://onix-bpp-plugin:8002/bpp/receiver/support
+      excludeAction: false
+    endpoints:
+      - support

@@ -1,0 +1,91 @@
+{
+	"info": {
+		"_postman_id": "meta-grievance-ledger-001",
+		"name": "Meta-Grievance-Ledger",
+		"description": "Meta API for storing support/grievance data from BAP and BPP to the network ledger. Includes both request and response endpoints.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30848972"
+	},
+	"item": [
+		{
+			"name": "grievance_ledger_request",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"context\": {\n    \"version\": \"{{version}}\",\n    \"action\": \"grievance_ledger_request\",\n    \"domain\": \"{{domain}}\",\n    \"location\": {\n      \"country\": {\n        \"code\": \"IND\"\n      },\n      \"city\": {\n        \"code\": \"std:080\"\n      }\n    },\n    \"bap_id\": \"{{bap_id}}\",\n    \"bap_uri\": \"{{bap_uri}}\",\n    \"bpp_id\": \"{{bpp_id}}\",\n    \"bpp_uri\": \"{{bpp_uri}}\",\n    \"transaction_id\": \"{{transaction_id}}\",\n    \"message_id\": \"{{$guid}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"ttl\": \"PT30S\",\n    \"schema_context\": [\n      \"https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld\"\n    ]\n  },\n  \"message\": {\n    \"ledger\": {\n      \"@context\": \"https://becknprotocol.io/schemas/core/v2/Ledger/schema-context.jsonld\",\n      \"@type\": \"beckn:Ledger\",\n      \"beckn:id\": \"grievance-ledger-request-{{$guid}}\",\n      \"beckn:type\": \"GRIEVANCE_REQUEST\",\n      \"beckn:entity\": {\n        \"@type\": \"beckn:Entity\",\n        \"beckn:type\": \"bap\",\n        \"beckn:id\": \"{{bap_id}}\"\n      },\n      \"beckn:reference\": {\n        \"@type\": \"beckn:Reference\",\n        \"beckn:refId\": \"order-789012\",\n        \"beckn:refType\": \"order\"\n      },\n      \"beckn:support\": {\n        \"@context\": \"https://becknprotocol.io/schemas/core/v2/SupportInfo/schema-context.jsonld\",\n        \"@type\": \"beckn:SupportInfo\",\n        \"beckn:issueType\": \"charging_failure\",\n        \"beckn:description\": \"Charging stopped unexpectedly after 10 minutes\",\n        \"beckn:priority\": \"high\",\n        \"beckn:status\": \"open\"\n      },\n      \"beckn:timestamp\": \"{{timestamp}}\"\n    }\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{meta_service_url}}/grievance_ledger/request",
+					"host": [
+						"{{meta_service_url}}"
+					],
+					"path": [
+						"grievance_ledger",
+						"request"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "grievance_ledger_response",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"context\": {\n    \"version\": \"{{version}}\",\n    \"action\": \"grievance_ledger_response\",\n    \"domain\": \"{{domain}}\",\n    \"location\": {\n      \"country\": {\n        \"code\": \"IND\"\n      },\n      \"city\": {\n        \"code\": \"std:080\"\n      }\n    },\n    \"bap_id\": \"{{bap_id}}\",\n    \"bap_uri\": \"{{bap_uri}}\",\n    \"bpp_id\": \"{{bpp_id}}\",\n    \"bpp_uri\": \"{{bpp_uri}}\",\n    \"transaction_id\": \"{{transaction_id}}\",\n    \"message_id\": \"{{$guid}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"ttl\": \"PT30S\",\n    \"schema_context\": [\n      \"https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld\"\n    ]\n  },\n  \"message\": {\n    \"ledger\": {\n      \"@context\": \"https://becknprotocol.io/schemas/core/v2/Ledger/schema-context.jsonld\",\n      \"@type\": \"beckn:Ledger\",\n      \"beckn:id\": \"grievance-ledger-response-{{$guid}}\",\n      \"beckn:type\": \"GRIEVANCE_RESPONSE\",\n      \"beckn:entity\": {\n        \"@type\": \"beckn:Entity\",\n        \"beckn:type\": \"bpp\",\n        \"beckn:id\": \"{{bpp_id}}\"\n      },\n      \"beckn:reference\": {\n        \"@type\": \"beckn:Reference\",\n        \"beckn:refId\": \"order-789012\",\n        \"beckn:refType\": \"order\"\n      },\n      \"beckn:supportResponse\": {\n        \"@context\": \"https://becknprotocol.io/schemas/core/v2/SupportInfo/schema-context.jsonld\",\n        \"@type\": \"beckn:SupportInfo\",\n        \"beckn:phone\": \"+91-80-12345678\",\n        \"beckn:email\": \"support@ecopower.com\",\n        \"beckn:uri\": \"https://ecopower.com/support\",\n        \"beckn:issueType\": \"charging_failure\",\n        \"beckn:description\": \"Charging stopped unexpectedly\",\n        \"beckn:priority\": \"high\",\n        \"beckn:status\": \"open\"\n      },\n      \"beckn:timestamp\": \"{{timestamp}}\"\n    }\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{meta_service_url}}/grievance_ledger/response",
+					"host": [
+						"{{meta_service_url}}"
+					],
+					"path": [
+						"grievance_ledger",
+						"response"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		}
+	]
+}

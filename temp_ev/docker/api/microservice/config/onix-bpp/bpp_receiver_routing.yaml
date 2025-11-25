@@ -1,0 +1,95 @@
+# ONIX BPP Receiver Routing Configuration
+# Microservice Architecture: Each request routes to different mock BPP services
+
+routingRules:
+  # Phase 1: Discover request from CDS routes to mock-bpp-discover
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bpp-discover:9002
+      excludeAction: false
+    endpoints:
+      - discover
+
+  # Phase 2+: Each request routes to different mock BPP services
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bpp-select:9002
+      excludeAction: false
+    endpoints:
+      - select
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bpp-init:9002
+      excludeAction: false
+    endpoints:
+      - init
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bpp-confirm:9002
+      excludeAction: false
+    endpoints:
+      - confirm
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bpp-status:9002
+      excludeAction: false
+    endpoints:
+      - status
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bpp-track:9002
+      excludeAction: false
+    endpoints:
+      - track
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bpp-cancel:9002
+      excludeAction: false
+    endpoints:
+      - cancel
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bpp-update:9002
+      excludeAction: false
+    endpoints:
+      - update
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bpp-rating:9002
+      excludeAction: false
+    endpoints:
+      - rating
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bpp-support:9002
+      excludeAction: false
+    endpoints:
+      - support

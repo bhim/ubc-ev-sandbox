@@ -1,0 +1,59 @@
+# Default values for mock-registry
+fullnameOverride: ev-charging-mock-registry
+
+image:
+  repository: manendrapalsingh/mock-registry
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 3030
+  targetPort: 3030
+
+config:
+  server:
+    port: ":3030"
+  
+  subscribers:
+    - subscriber_id: "ev-charging.sandbox1.com"
+      subscriber_uri: "http://ev-charging-bap-onix-api-microservice-bap-service:8001/bap/receiver"
+      type: "BAP"
+      signing_public_key: "MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU="
+      encr_public_key: "MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU="
+      key_id: "bap-key-1"
+    
+    - subscriber_id: "ev-charging.sandbox2.com"
+      subscriber_uri: "http://ev-charging-bpp-onix-api-microservice-bpp-service:8002/bpp/receiver"
+      type: "BPP"
+      signing_public_key: "MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU="
+      encr_public_key: "MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU="
+      key_id: "bpp-key-1"
+    
+    - subscriber_id: "mock-cds"
+      subscriber_uri: "http://ev-charging-mock-cds:8082"
+      type: "CDS"
+      signing_public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+      encr_public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+      key_id: "cds-key-1"
+  
+  defaults:
+    valid_from: "2025-01-01T00:00:00Z"
+    valid_until: "2099-12-31T23:59:59Z"
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "200m"
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+

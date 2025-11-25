@@ -1,0 +1,395 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "on_search",
+  "type": "object",
+  "properties": {
+    "context": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string",
+          "description": "Identifier of the domain",
+          "pattern": "^(dent:ev-charging:|ev_charging_network|beckn.one:deg:ev-charging)"
+        },
+        "action": {
+          "type": "string",
+          "enum": ["on_search"],
+          "description": "API endpoint callback"
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "country": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "description": "Country code"
+                }
+              },
+              "required": ["code"]
+            },
+            "city": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "description": "City code"
+                }
+              },
+              "required": ["code"]
+            }
+          },
+          "required": ["country", "city"]
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the Beckn protocol"
+        },
+        "bap_id": {
+          "type": "string",
+          "description": "Identification of the BAP"
+        },
+        "bap_uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "BAP endpoint"
+        },
+        "bpp_id": {
+          "type": "string",
+          "description": "Identification of the BPP"
+        },
+        "bpp_uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "BPP endpoint"
+        },
+        "transaction_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Transaction identifier"
+        },
+        "message_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Message identifier"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Time at which the response was generated"
+        },
+        "ttl": {
+          "type": "string",
+          "description": "Time to live (ISO 8601 duration format)"
+        },
+        "schema_context": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "description": "Schema context URLs"
+        }
+      },
+      "required": ["domain", "action", "location", "version", "bap_id", "bap_uri", "bpp_id", "bpp_uri", "transaction_id", "message_id", "timestamp"]
+    },
+    "message": {
+      "type": "object",
+      "properties": {
+        "catalog": {
+          "type": "object",
+          "properties": {
+            "providers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Provider identifier"
+                  },
+                  "descriptor": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "short_desc": {
+                        "type": "string"
+                      },
+                      "images": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "url": {
+                              "type": "string",
+                              "format": "uri"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "locations": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "gps": {
+                          "type": "string",
+                          "description": "GPS coordinates"
+                        }
+                      },
+                      "required": ["id", "gps"]
+                    }
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "descriptor": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "fulfillments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": ["CHARGING", "BATTERY-SWAP", "MOBILE-BATTERY-SWAP"]
+                        },
+                        "stops": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": ["start", "end"]
+                              },
+                              "location": {
+                                "type": "object",
+                                "properties": {
+                                  "gps": {
+                                    "type": "string"
+                                  },
+                                  "map_url": {
+                                    "type": "string",
+                                    "format": "uri"
+                                  }
+                                }
+                              },
+                              "time": {
+                                "type": "object",
+                                "properties": {
+                                  "timestamp": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "tags": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "descriptor": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "list": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "descriptor": {
+                                      "type": "object",
+                                      "properties": {
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "code": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              },
+                              "display": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "required": ["id", "type"]
+                    }
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "descriptor": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "price": {
+                          "type": "object",
+                          "properties": {
+                            "value": {
+                              "type": "string"
+                            },
+                            "currency": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["value", "currency"]
+                        },
+                        "quantity": {
+                          "type": "object",
+                          "properties": {
+                            "available": {
+                              "type": "object",
+                              "properties": {
+                                "measure": {
+                                  "type": "object",
+                                  "properties": {
+                                    "unit": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "category_ids": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "location_ids": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "fulfillment_ids": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "add_ons": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "descriptor": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "price": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string"
+                                  },
+                                  "currency": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "required": ["id", "price"]
+                    }
+                  }
+                },
+                "required": ["id"]
+              }
+            }
+          },
+          "required": ["providers"]
+        }
+      },
+      "required": ["catalog"]
+    }
+  },
+  "error": {
+    "type": "object",
+    "properties": {
+      "type": {
+        "type": "string"
+      },
+      "code": {
+        "type": "string"
+      },
+      "path": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      }
+    }
+  },
+  "required": ["context", "message"],
+  "additionalProperties": false
+}
+

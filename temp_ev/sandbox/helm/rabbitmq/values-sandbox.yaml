@@ -1,0 +1,128 @@
+# Sandbox values for EV Charging RabbitMQ Setup
+# This file contains sandbox-specific overrides for the helm/rabbitmq chart
+# Use with: helm install <release-name> ../../helm/rabbitmq -f values-sandbox.yaml
+
+# Mock services configuration
+mockServices:
+  enabled: true
+  
+  # Mock Registry Service
+  registry:
+    enabled: true
+    image:
+      repository: manendrapalsingh/mock-registry
+      tag: latest
+    service:
+      type: ClusterIP
+      port: 3030
+    config: |
+      server:
+        port: ":3030"
+      
+      subscribers:
+        - subscriber_id: "ev-charging.sandbox1.com"
+          subscriber_uri: "http://onix-bap-plugin-rabbitmq:8001/bap/receiver"
+          type: "BAP"
+          signing_public_key: "MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU="
+          encr_public_key: "MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU="
+          key_id: "bap-key-1"
+        
+        - subscriber_id: "ev-charging.sandbox2.com"
+          subscriber_uri: "http://onix-bpp-plugin-rabbitmq:8002/bpp/receiver"
+          type: "BPP"
+          signing_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+          encr_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+          key_id: "bpp-key-1"
+        
+        - subscriber_id: "mock-cds"
+          subscriber_uri: "http://mock-cds:8082"
+          type: "CDS"
+          signing_public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+          encr_public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+          key_id: "cds-key-1"
+      
+      defaults:
+        valid_from: "2025-01-01T00:00:00Z"
+        valid_until: "2099-12-31T23:59:59Z"
+  
+  # Mock CDS Service
+  cds:
+    enabled: true
+    image:
+      repository: manendrapalsingh/mock-cds
+      tag: latest
+    service:
+      type: ClusterIP
+      port: 8082
+    config: |
+      server:
+        port: ":8082"
+      
+      registry:
+        host: "mock-registry"
+        port: "3030"
+        lookup_path: "/lookup"
+      
+      cds:
+        signing:
+          private_key: "o33NCO6dqo+MopQEA7cmRFm4544XkHfbAktjvaCCi7U="
+          public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+          subscriber_id: "mock-cds"
+          key_id: "cds-key-1"
+      
+      endpoints:
+        bpps:
+          - host: "onix-bpp-plugin-rabbitmq"
+            port: "8002"
+            discover_path: "/bpp/receiver/discover"
+            subscriber_id: "ev-charging.sandbox2.com"
+      
+      timing:
+        broadcast_discover_delay_ms: 500
+        aggregate_response_delay_ms: 1000
+        signature_expiry_minutes: 5
+      
+      defaults:
+        version: "2.0.0"
+        domain: "beckn.one:deg:ev-charging"
+        country_code: "IND"
+        city_code: "std:080"
+        default_gps: "12.9352,77.6245"
+  
+  # Mock BAP RabbitMQ Service
+  bapRabbitMQ:
+    enabled: true
+    image:
+      repository: manendrapalsingh/mock-bap-rabbit-mq
+      tag: latest
+    config: |
+      server:
+        port: ":9003"
+      
+      defaults:
+        version: "2.0.0"
+        country_code: "IND"
+        city_code: "std:080"
+        subscriber_id: "ev-charging.sandbox1.com"
+  
+  # Mock BPP RabbitMQ Service
+  bppRabbitMQ:
+    enabled: true
+    image:
+      repository: manendrapalsingh/mock-bpp-rabbit-mq
+      tag: latest
+    config: |
+      server:
+        port: ":9004"
+      
+      defaults:
+        version: "2.0.0"
+        country_code: "IND"
+        city_code: "std:080"
+        subscriber_id: "ev-charging.sandbox2.com"
+
+# RabbitMQ Management UI configuration
+rabbitmqManagement:
+  enabled: true
+  # Management UI is included in RabbitMQ image
+

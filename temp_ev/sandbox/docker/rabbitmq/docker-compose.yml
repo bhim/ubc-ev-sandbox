@@ -1,0 +1,249 @@
+version: '3.9'
+
+services:
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    pull_policy: always
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      # Allow guest user to connect from any host (required for Docker networking)
+      RABBITMQ_DEFAULT_VHOST: /
+      # Limit disk storage to 1 GB (1073741824 bytes)
+      RABBITMQ_DISK_FREE_LIMIT: "1GB"
+    networks:
+      - onix-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis for onix-bap-plugin-rabbitmq
+  redis-bap:
+    image: redis:alpine
+    pull_policy: always
+    container_name: redis-bap
+    ports:
+      - "6379:6379"
+    networks:
+      - onix-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis for onix-bpp-plugin-rabbitmq
+  redis-bpp:
+    image: redis:alpine
+    pull_policy: always
+    container_name: redis-bpp
+    ports:
+      - "6380:6379"
+    networks:
+      - onix-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Onix BAP RabbitMQ Plugin
+  onix-bap-plugin-rabbitmq:
+    image: manendrapalsingh/onix-bap-plugin-rabbit-mq:latest
+    pull_policy: always
+    container_name: onix-bap-plugin-rabbitmq
+    ports:
+      - "8001:8001"  # HTTP port for bapTxnReceiver endpoint
+    volumes:
+      # Mount config directory to the expected path in container
+      - ../../../docker/rabbitmq/config/onix-bap:/app/config/message-baised/rabbit-mq/onix-bap
+      # Mount schema directory (read-only)
+      - ../../../schemas:/app/schemas:ro
+    environment:
+      - CONFIG_FILE=/app/config/message-baised/rabbit-mq/onix-bap/adapter.yaml
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis-bap:
+        condition: service_healthy
+      mock-registry:
+        condition: service_healthy
+    networks:
+      - onix-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  # Onix BPP RabbitMQ Plugin
+  onix-bpp-plugin-rabbitmq:
+    image: manendrapalsingh/onix-bpp-plugin-rabbit-mq:latest
+    pull_policy: always
+    container_name: onix-bpp-plugin-rabbitmq
+    ports:
+      - "8002:8002"  # HTTP port for bppTxnReceiver endpoint
+    volumes:
+      # Mount config directory to the expected path in container
+      - ../../../docker/rabbitmq/config/onix-bpp:/app/config/message-baised/rabbit-mq/onix-bpp
+      # Mount schema directory (read-only)
+      - ../../../schemas:/app/schemas:ro
+    environment:
+      - CONFIG_FILE=/app/config/message-baised/rabbit-mq/onix-bpp/adapter.yaml
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis-bpp:
+        condition: service_healthy
+      mock-registry:
+        condition: service_healthy
+    networks:
+      - onix-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  # Mock Registry Service
+  mock-registry:
+    image: manendrapalsingh/mock-registry:latest
+    pull_policy: always
+    container_name: mock-registry
+    ports:
+      - "3030:3030"
+    volumes:
+      # Mount config file from local directory
+      - ./mock-registry_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3030/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Mock CDS Service
+  mock-cds:
+    image: manendrapalsingh/mock-cds:latest
+    pull_policy: always
+    container_name: mock-cds
+    ports:
+      - "8082:8082"
+    volumes:
+      # Mount config file from local directory
+      - ./mock-cds_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      mock-registry:
+        condition: service_healthy
+
+  # Mock BAP RabbitMQ Service
+  mock-bap-rabbit-mq:
+    image: manendrapalsingh/mock-bap-rabbit-mq:latest
+    pull_policy: always
+    container_name: mock-bap-rabbit-mq
+    # Note: HTTP port not exposed as service runs in queue-only mode
+    # Health check runs internally via localhost:9003
+    volumes:
+      # Mount config file from local directory
+      - ./mock-bap-rabbitMq_config.yml:/app/config/config.yaml:ro
+    environment:
+      # Config file path
+      CONFIG_FILE: /app/config/config.yaml
+      # RabbitMQ configuration from config.yaml
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      RABBITMQ_EXCHANGE: beckn_exchange
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      # Defaults configuration from config.yaml (should match config file)
+      DEFAULTS_VERSION: "2.0.0"
+      DEFAULTS_COUNTRY_CODE: "IND"
+      DEFAULTS_CITY_CODE: "std:080"
+      DEFAULTS_SUBSCRIBER_ID: "ev-charging.sandbox1.com"
+    networks:
+    - onix-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis-bap:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Mock BPP RabbitMQ Service
+  mock-bpp-rabbit-mq:
+    image: manendrapalsingh/mock-bpp-rabbit-mq:latest
+    pull_policy: always
+    container_name: mock-bpp-rabbit-mq
+    # Note: HTTP port not exposed as service runs in queue-only mode
+    # Health check runs internally via localhost:9004
+    volumes:
+      # Mount config file from local directory
+      - ./mock-bpp-rabbitMq_config.yml:/app/config/config.yaml:ro
+    environment:
+      # Config file path
+      CONFIG_FILE: /app/config/config.yaml
+      # RabbitMQ configuration from config.yaml
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      RABBITMQ_EXCHANGE: beckn_exchange
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      # Defaults configuration from config.yaml (should match config file)
+      DEFAULTS_VERSION: "2.0.0"
+      DEFAULTS_COUNTRY_CODE: "IND"
+      DEFAULTS_CITY_CODE: "std:080"
+      DEFAULTS_SUBSCRIBER_ID: "ev-charging.sandbox2.com"
+    networks:
+      - onix-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis-bpp:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  onix-network:
+    driver: bridge
+

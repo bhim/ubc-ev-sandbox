@@ -1,0 +1,831 @@
+openapi: 3.0.3
+info:
+  title: BAP - EV Charging Network API
+  description: |
+    Beckn Application Platform (BAP) API for EV Charging Network.
+    
+    **Asynchronous Communication Pattern:**
+    - All requests follow an asynchronous communication pattern
+    - Each request immediately returns an ACK (200 OK) or NAK (error response)
+    - ACK indicates the request was accepted and will be processed asynchronously
+    - NAK indicates the request was rejected due to validation errors or other issues
+    - Actual response data will be sent asynchronously via callback endpoints
+    
+    **Response Flow:**
+    - On success: Returns 200 OK with an acknowledgment
+    - On error: Returns appropriate HTTP error status (400, 500, etc.) with error details
+    - Async responses: Actual business responses are delivered via callback endpoints (e.g., on_discover, on_select)
+  version: 1.0.0
+  contact:
+    name: EV Charging Network API Support
+    email: support@evcharging.network
+
+servers:
+  - url: http://localhost:8081/bap/caller
+    description: Local BAP Adapter (Development)
+  - url: http://onix-bap:8081/bap/caller
+    description: BAP Adapter (Docker)
+
+tags:
+  - name: Discovery
+    description: Discovery operations to find EV charging stations
+  - name: Order Management
+    description: Order lifecycle management operations
+  - name: Tracking
+    description: Order tracking and status monitoring
+  - name: Support
+    description: Support and rating operations
+
+paths:
+  /discover:
+    post:
+      tags:
+        - Discovery
+      summary: Discover EV charging stations
+      description: |
+        Search for EV charging stations based on various criteria such as:
+        - Location (spatial queries: point, line, polygon)
+        - Station/EVSE filters
+        - Connector type and power specifications
+        - Time range availability
+        - Vehicle compatibility
+        
+        Returns ACK/NAK immediately. The actual catalog response is sent asynchronously via `on_discover` callback.
+      operationId: discover
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiscoverRequest'
+            examples:
+              spatialQuery:
+                summary: Spatial query within boundary
+                value:
+                  context:
+                    version: "2.0.0"
+                    action: "discover"
+                    domain: "beckn.one:deg:ev-charging"
+                    location:
+                      country:
+                        code: "IND"
+                      city:
+                        code: "std:080"
+                    bap_id: "ev-charging.sandbox1.com"
+                    bap_uri: "http://onix-bap:8081/bap/receiver"
+                    transaction_id: "2b4d69aa-22e4-4c78-9f56-5a7b9e2b2002"
+                    message_id: "msg-001"
+                    timestamp: "2025-01-27T10:00:00Z"
+                    ttl: "PT30S"
+                    schema_context:
+                      - "https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld"
+                  message:
+                    spatial:
+                      - op: "s_dwithin"
+                        targets: "$['beckn:availableAt'][*]['geo']"
+                        geometry:
+                          type: "Point"
+                          coordinates: [77.59, 12.94]
+                        distanceMeters: 10000
+      responses:
+        '200':
+          description: ACK - Request accepted and will be processed asynchronously
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AckResponse'
+        '400':
+          description: NAK - Bad request (validation error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: NAK - Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /select:
+    post:
+      tags:
+        - Order Management
+      summary: Select charging offer
+      description: |
+        Select a specific charging offer from the discovered catalog.
+        Returns ACK/NAK immediately. The actual selection response is sent asynchronously via `on_select` callback.
+      operationId: select
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelectRequest'
+      responses:
+        '200':
+          description: ACK - Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AckResponse'
+        '400':
+          description: NAK - Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: NAK - Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /init:
+    post:
+      tags:
+        - Order Management
+      summary: Initialize order
+      description: |
+        Initialize an order with charging session details.
+        Returns ACK/NAK immediately. The actual initialization response with quote is sent asynchronously via `on_init` callback.
+      operationId: init
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitRequest'
+      responses:
+        '200':
+          description: ACK - Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AckResponse'
+        '400':
+          description: NAK - Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: NAK - Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /confirm:
+    post:
+      tags:
+        - Order Management
+      summary: Confirm order
+      description: |
+        Confirm and finalize the order for charging session.
+        Returns ACK/NAK immediately. The actual confirmation response is sent asynchronously via `on_confirm` callback.
+      operationId: confirm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmRequest'
+      responses:
+        '200':
+          description: ACK - Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AckResponse'
+        '400':
+          description: NAK - Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: NAK - Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /update:
+    post:
+      tags:
+        - Order Management
+      summary: Update order
+      description: |
+        Update an existing order with new information.
+        Returns ACK/NAK immediately. The actual update response is sent asynchronously via `on_update` callback.
+      operationId: update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRequest'
+      responses:
+        '200':
+          description: ACK - Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AckResponse'
+        '400':
+          description: NAK - Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: NAK - Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /track:
+    post:
+      tags:
+        - Tracking
+      summary: Track order status
+      description: |
+        Request current status of an order.
+        Returns ACK/NAK immediately. The actual tracking response is sent asynchronously via `on_track` callback.
+      operationId: track
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrackRequest'
+      responses:
+        '200':
+          description: ACK - Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AckResponse'
+        '400':
+          description: NAK - Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: NAK - Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cancel:
+    post:
+      tags:
+        - Order Management
+      summary: Cancel order
+      description: |
+        Cancel an existing order or order items.
+        Returns ACK/NAK immediately. The actual cancellation response is sent asynchronously via `on_cancel` callback.
+      operationId: cancel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelRequest'
+      responses:
+        '200':
+          description: ACK - Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AckResponse'
+        '400':
+          description: NAK - Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: NAK - Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /rating:
+    post:
+      tags:
+        - Support
+      summary: Submit rating
+      description: |
+        Submit a rating and feedback for an order, fulfillment, provider, or item.
+        Returns ACK/NAK immediately. The actual rating response is sent asynchronously via `on_rating` callback.
+      operationId: rating
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RatingRequest'
+      responses:
+        '200':
+          description: ACK - Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AckResponse'
+        '400':
+          description: NAK - Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: NAK - Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /support:
+    post:
+      tags:
+        - Support
+      summary: Request support
+      description: |
+        Request support for an order, fulfillment, item, or payment.
+        Returns ACK/NAK immediately. The actual support response is sent asynchronously via `on_support` callback.
+      operationId: support
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupportRequest'
+      responses:
+        '200':
+          description: ACK - Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AckResponse'
+        '400':
+          description: NAK - Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: NAK - Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    AckResponse:
+      type: object
+      properties:
+        message:
+          type: object
+          properties:
+            ack:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: ["ACK"]
+                  description: Acknowledgment status
+          required:
+            - ack
+      required:
+        - message
+      example:
+        message:
+          ack:
+            status: "ACK"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            type:
+              type: string
+              description: Error type
+            code:
+              type: string
+              description: Error code
+            path:
+              type: string
+              description: Path to the error location
+            message:
+              type: string
+              description: Error message
+          required:
+            - type
+            - code
+            - message
+
+    Context:
+      type: object
+      properties:
+        version:
+          type: string
+          description: Version of the Beckn protocol
+          example: "2.0.0"
+        action:
+          type: string
+          description: API endpoint to be called
+        domain:
+          type: string
+          description: Identifier of the domain
+          example: "beckn.one:deg:ev-charging"
+        location:
+          $ref: '#/components/schemas/Location'
+        bap_id:
+          type: string
+          description: Identification of the BAP
+        bap_uri:
+          type: string
+          format: uri
+          description: BAP endpoint
+        bpp_id:
+          type: string
+          description: Identification of the BPP
+        bpp_uri:
+          type: string
+          format: uri
+          description: BPP endpoint
+        transaction_id:
+          type: string
+          description: Transaction identifier
+        message_id:
+          type: string
+          description: Message identifier
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the request was generated
+        ttl:
+          type: string
+          description: Time to live (ISO 8601 duration format)
+          example: "PT30S"
+        schema_context:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: Schema context URLs
+      required:
+        - version
+        - action
+        - domain
+        - location
+        - bap_id
+        - bap_uri
+        - transaction_id
+        - message_id
+        - timestamp
+
+    Location:
+      type: object
+      properties:
+        country:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Country code as per ISO 3166-1 alpha-3 standard
+              example: "IND"
+          required:
+            - code
+        city:
+          type: object
+          properties:
+            code:
+              type: string
+              description: City code
+              example: "std:080"
+          required:
+            - code
+      required:
+        - country
+        - city
+
+    DiscoverRequest:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/Context'
+        message:
+          type: object
+          properties:
+            text_search:
+              type: string
+              description: Text-based search query
+            spatial:
+              type: array
+              items:
+                type: object
+                properties:
+                  op:
+                    type: string
+                    enum: ["s_dwithin", "s_within", "s_intersects"]
+                    description: Spatial operation
+                  targets:
+                    type: string
+                    description: JSONPath expression to target elements
+                    example: "$['beckn:availableAt'][*]['geo']"
+                  geometry:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        enum: ["Point", "LineString", "Polygon"]
+                      coordinates:
+                        oneOf:
+                          - type: array
+                            items:
+                              type: number
+                            minItems: 2
+                            maxItems: 2
+                            description: Point coordinates [longitude, latitude]
+                          - type: array
+                            items:
+                              type: array
+                              items:
+                                type: number
+                            description: LineString or Polygon coordinates
+                    required:
+                      - type
+                      - coordinates
+                  distanceMeters:
+                    type: number
+                    description: Distance in meters for spatial queries
+                required:
+                  - op
+                  - targets
+                  - geometry
+            filters:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: ["jsonpath"]
+                  description: Filter type
+                expression:
+                  type: string
+                  description: JSONPath expression for filtering
+              required:
+                - type
+                - expression
+      required:
+        - context
+        - message
+
+    SelectRequest:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/Context'
+        message:
+          type: object
+          properties:
+            order:
+              $ref: '#/components/schemas/Order'
+          required:
+            - order
+      required:
+        - context
+        - message
+
+    InitRequest:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/Context'
+        message:
+          type: object
+          properties:
+            order:
+              $ref: '#/components/schemas/Order'
+          required:
+            - order
+      required:
+        - context
+        - message
+
+    ConfirmRequest:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/Context'
+        message:
+          type: object
+          properties:
+            order:
+              $ref: '#/components/schemas/Order'
+          required:
+            - order
+      required:
+        - context
+        - message
+
+    UpdateRequest:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/Context'
+        message:
+          type: object
+          properties:
+            order:
+              $ref: '#/components/schemas/Order'
+          required:
+            - order
+      required:
+        - context
+        - message
+
+    TrackRequest:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/Context'
+        message:
+          type: object
+          properties:
+            order:
+              type: object
+              properties:
+                "@context":
+                  type: string
+                  format: uri
+                "@type":
+                  type: string
+                  enum: ["beckn:Order"]
+                "beckn:id":
+                  type: string
+              required:
+                - "@type"
+                - "beckn:id"
+          required:
+            - order
+      required:
+        - context
+        - message
+
+    CancelRequest:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/Context'
+        message:
+          type: object
+          properties:
+            order:
+              type: array
+              items:
+                type: object
+                properties:
+                  "@type":
+                    type: string
+                    enum: ["beckn:Order"]
+                  "beckn:id":
+                    type: string
+                  "beckn:orderItems":
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        "beckn:orderedItem":
+                          type: string
+                      required:
+                        - "beckn:orderedItem"
+                required:
+                  - "@type"
+                  - "beckn:id"
+              minItems: 1
+          required:
+            - order
+      required:
+        - context
+        - message
+
+    RatingRequest:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/Context'
+        message:
+          type: object
+          properties:
+            id:
+              type: string
+              description: Rating identifier (e.g., fulfillment ID)
+            value:
+              type: number
+              minimum: 1
+              description: Rating value
+            best:
+              type: number
+              description: Best possible rating value
+            worst:
+              type: number
+              description: Worst possible rating value
+            category:
+              type: string
+              enum: ["fulfillment", "provider", "item"]
+              description: Category of the rating
+            feedback:
+              type: object
+              properties:
+                comments:
+                  type: string
+                  description: Textual feedback comments
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  description: Feedback tags
+          required:
+            - id
+            - value
+      required:
+        - context
+        - message
+
+    SupportRequest:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/Context'
+        message:
+          type: object
+          properties:
+            ref_id:
+              type: string
+              description: Reference ID (e.g., order ID)
+            ref_type:
+              type: string
+              enum: ["order", "fulfillment", "item", "payment"]
+              description: Type of reference
+          required:
+            - ref_id
+            - ref_type
+      required:
+        - context
+        - message
+
+    Order:
+      type: object
+      description: Order object with varying structure based on endpoint
+      properties:
+        "@context":
+          type: string
+          format: uri
+        "@type":
+          type: string
+          enum: ["beckn:Order"]
+        "beckn:id":
+          type: string
+        "beckn:orderStatus":
+          type: string
+        "beckn:orderNumber":
+          type: string
+        "beckn:seller":
+          type: string
+        "beckn:buyer":
+          oneOf:
+            - type: string
+            - type: object
+        "beckn:orderItems":
+          type: array
+          items:
+            type: object
+        "beckn:orderValue":
+          type: object
+          properties:
+            currency:
+              type: string
+            value:
+              type: number
+            components:
+              type: array
+              items:
+                type: object
+        "beckn:fulfillment":
+          type: object
+        "beckn:payment":
+          type: object
+        "beckn:orderAttributes":
+          type: object
+

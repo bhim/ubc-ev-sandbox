@@ -1,0 +1,160 @@
+# BPP-specific values for onix-kafka
+component: bpp
+
+image:
+  repository: manendrapalsingh/onix-bpp-plugin-kafka
+  tag: latest
+
+service:
+  port: 8002
+  targetPort: 8002
+
+# Disable Kafka, Kafka UI, and mock services for BPP release
+# These should be deployed only once (with BAP release) and shared
+kafka:
+  enabled: false
+  # Use the Kafka broker from BAP release (shared Kafka instance)
+  broker: "ev-charging-kafka-bap-onix-kafka-kafka:9092"
+
+kafkaUI:
+  enabled: false
+
+mockServices:
+  enabled: false
+
+redis:
+  enabled: true
+  # Redis host - if not set, will default to <release-name>-onix-kafka-redis-bpp
+  # Set this if you want to use a different Redis service name or external Redis
+  # host: ""
+  service:
+    port: 6379
+
+# Note: CONFIG_FILE is set automatically in the deployment template
+# No need to set it here to avoid duplicates
+env: []
+
+# BPP-specific routing configuration
+# BPP receiver routes direct endpoints (select, init, etc.) to Kafka topics
+# BPP caller routes on_* callbacks back to BAP
+config:
+  routing:
+    caller: |
+      # ONIX BPP Caller Routing Configuration (Kafka)
+      # Routes callbacks from BPP Backend (bpp.on_* topics) back to BAP
+      
+      routingRules:
+        # Phase 1: on_discover response routed to CDS
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://mock-cds:8082/csd
+            excludeAction: false
+          endpoints:
+            - on_discover
+        
+        # Phase 2+: Other callbacks to BAP-ONIX
+        # Uses bap_uri from message context when targetType: bap
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: bap
+          target: {}
+          endpoints:
+            - on_select
+            - on_init
+            - on_confirm
+            - on_status
+            - on_track
+            - on_cancel
+            - on_update
+            - on_rating
+            - on_support
+    
+    receiver: |
+      # ONIX BPP Receiver Routing Configuration (Kafka)
+      # Routes direct endpoints from BAP to Kafka topics
+      
+      routingRules:
+        # Discover requests to BPP Backend via Kafka
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.discover
+          endpoints:
+            - discover
+        
+        # Other requests to BPP Backend via Kafka
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.select
+          endpoints:
+            - select
+        
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.init
+          endpoints:
+            - init
+        
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.confirm
+          endpoints:
+            - confirm
+        
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.status
+          endpoints:
+            - status
+        
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.track
+          endpoints:
+            - track
+        
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.cancel
+          endpoints:
+            - cancel
+        
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.update
+          endpoints:
+            - update
+        
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.rating
+          endpoints:
+            - rating
+        
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.support
+          endpoints:
+            - support
+

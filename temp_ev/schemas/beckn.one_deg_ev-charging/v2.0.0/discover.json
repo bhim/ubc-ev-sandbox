@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "discover",
+  "type": "object",
+  "properties": {
+    "context": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "Version of the Beckn protocol"
+        },
+        "action": {
+          "type": "string",
+          "enum": ["discover"],
+          "description": "API endpoint to be called"
+        },
+        "domain": {
+          "type": "string",
+          "description": "Identifier of the domain",
+          "pattern": "^(dent:ev-charging:|ev_charging_network|beckn.one:deg:ev-charging)"
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "country": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "description": "Country code as per ISO 3166-1 alpha-3 standard"
+                }
+              },
+              "required": ["code"]
+            },
+            "city": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "description": "City code"
+                }
+              },
+              "required": ["code"]
+            }
+          },
+          "required": ["country", "city"]
+        },
+        "bap_id": {
+          "type": "string",
+          "description": "Identification of the BAP"
+        },
+        "bap_uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "BAP endpoint"
+        },
+        "transaction_id": {
+          "type": "string",
+          "description": "Transaction identifier"
+        },
+        "message_id": {
+          "type": "string",
+          "description": "Message identifier"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Time at which the request was generated"
+        },
+        "ttl": {
+          "type": "string",
+          "description": "Time to live (ISO 8601 duration format)"
+        },
+        "schema_context": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "description": "Schema context URLs"
+        }
+      },
+      "required": ["version", "action", "domain", "location", "bap_id", "bap_uri", "transaction_id", "message_id", "timestamp"]
+    },
+    "message": {
+      "type": "object",
+      "properties": {
+        "text_search": {
+          "type": "string",
+          "description": "Text-based search query"
+        },
+        "spatial": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string",
+                "enum": ["s_dwithin", "s_within", "s_intersects"],
+                "description": "Spatial operation"
+              },
+              "targets": {
+                "type": "string",
+                "description": "JSONPath expression to target elements (e.g., $['beckn:availableAt'][*]['geo'])"
+              },
+              "geometry": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["Point", "LineString", "Polygon"],
+                    "description": "Geometry type"
+                  },
+                  "coordinates": {
+                    "oneOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        },
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "description": "Point coordinates [longitude, latitude]"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "number"
+                          },
+                          "minItems": 2,
+                          "maxItems": 2
+                        },
+                        "description": "LineString or Polygon coordinates"
+                      }
+                    ]
+                  }
+                },
+                "required": ["type", "coordinates"]
+              },
+              "distanceMeters": {
+                "type": "number",
+                "description": "Distance in meters for spatial queries"
+              }
+            },
+            "required": ["op", "targets", "geometry"]
+          }
+        },
+        "filters": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["jsonpath"],
+              "description": "Filter type"
+            },
+            "expression": {
+              "type": "string",
+              "description": "JSONPath expression for filtering"
+            }
+          },
+          "required": ["type", "expression"]
+        }
+      }
+    }
+  },
+  "required": ["context", "message"],
+  "additionalProperties": false
+}

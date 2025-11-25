@@ -1,0 +1,56 @@
+{
+	"info": {
+		"_postman_id": "65d469fe-b469-40f7-b7f9-0479fc855cef",
+		"name": "BPP-DEG:EV-Charging-On-Rating",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30848972"
+	},
+	"item": [
+		{
+			"name": "on_rating",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"context\": {\n    \"version\": \"{{version}}\",\n    \"action\": \"on_rating\",\n    \"domain\": \"{{domain}}\",\n    \"location\": {\n      \"country\": {\n        \"code\": \"IND\"\n      },\n      \"city\": {\n        \"code\": \"std:080\"\n      }\n    },\n    \"bap_id\": \"{{bap_id}}\",\n    \"bap_uri\": \"{{bap_uri}}\",\n    \"bpp_id\": \"{{bpp_id}}\",\n    \"bpp_uri\": \"{{bpp_uri}}\",\n    \"transaction_id\": \"{{transaction_id}}\",\n    \"message_id\": \"{{$guid}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"ttl\": \"PT30S\",\n    \"schema_context\": [\n      \"https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld\"\n    ]\n  },\n  \"message\": {\n    \"feedback\": {\n      \"@context\": \"https://becknprotocol.io/schemas/core/v2/Feedback/schema-context.jsonld\",\n      \"@type\": \"beckn:Feedback\",\n      \"feedbackId\": \"feedback-001\",\n      \"rating\": {\n        \"@context\": \"https://becknprotocol.io/schemas/core/v2/Rating/schema-context.jsonld\",\n        \"@type\": \"beckn:Rating\",\n        \"ratingId\": \"rating-001\",\n        \"value\": 5,\n        \"best\": 5,\n        \"worst\": 1,\n        \"category\": \"fulfillment\",\n        \"feedbackForm\": {\n          \"@type\": \"beckn:Form\",\n          \"id\": \"feedback-form-001\",\n          \"fields\": [\n            {\n              \"id\": \"comments\",\n              \"type\": \"text\",\n              \"label\": \"Additional Comments\",\n              \"value\": \"Excellent charging experience!\"\n            },\n            {\n              \"id\": \"tags\",\n              \"type\": \"tags\",\n              \"label\": \"Tags\",\n              \"value\": [\"fast-charging\", \"easy-to-use\", \"clean-station\"]\n            }\n          ]\n        }\n      },\n      \"aggregateRating\": {\n        \"value\": 4.5,\n        \"count\": 235,\n        \"best\": 5,\n        \"worst\": 1\n      }\n    }\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{on_rating_url}}",
+					"host": [
+						"{{on_rating_url}}"
+					],
+					"path": []
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		}
+	]
+}
+

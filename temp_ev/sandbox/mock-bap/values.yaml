@@ -1,0 +1,58 @@
+# Default values for mock-bap
+fullnameOverride: ev-charging-mock-bap
+
+image:
+  repository: manendrapalsingh/mock-bap
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 9001
+  targetPort: 9001
+
+config:
+  server:
+    port: ":9001"
+  
+  defaults:
+    version: "2.0.0"
+    domain: "beckn.one:deg:ev-charging"
+    country_code: "IND"
+    city_code: "std:080"
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "200m"
+
+# Health probe configuration
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+

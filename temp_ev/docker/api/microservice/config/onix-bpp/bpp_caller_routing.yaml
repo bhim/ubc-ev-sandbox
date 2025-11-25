@@ -1,0 +1,95 @@
+# BPP Caller Routing Configuration
+# Microservice Architecture: Routes to onix-bap-plugin, which then routes to different mock BAP services
+
+routingRules:
+  # Phase 1: on_discover response routes to onix-bap-plugin receiver (CDS sends aggregated response to BPP caller, which then routes to BAP receiver)
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-cds:8082/csd
+      excludeAction: false
+    endpoints:
+      - on_discover
+
+  # Phase 2+: Each response routes to onix-bap-plugin receiver, which then routes to different mock BAP services
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://onix-bap-plugin:8001/bap/receiver/on_select
+      excludeAction: false
+    endpoints:
+      - on_select
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://onix-bap-plugin:8001/bap/receiver/on_init
+      excludeAction: false
+    endpoints:
+      - on_init
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://onix-bap-plugin:8001/bap/receiver/on_confirm
+      excludeAction: false
+    endpoints:
+      - on_confirm
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://onix-bap-plugin:8001/bap/receiver/on_status
+      excludeAction: false
+    endpoints:
+      - on_status
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://onix-bap-plugin:8001/bap/receiver/on_track
+      excludeAction: false
+    endpoints:
+      - on_track
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://onix-bap-plugin:8001/bap/receiver/on_cancel
+      excludeAction: false
+    endpoints:
+      - on_cancel
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://onix-bap-plugin:8001/bap/receiver/on_update
+      excludeAction: false
+    endpoints:
+      - on_update
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://onix-bap-plugin:8001/bap/receiver/on_rating
+      excludeAction: false
+    endpoints:
+      - on_rating
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://onix-bap-plugin:8001/bap/receiver/on_support
+      excludeAction: false
+    endpoints:
+      - on_support

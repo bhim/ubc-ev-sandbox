@@ -1,0 +1,714 @@
+openapi: 3.0.3
+info:
+  title: Meta Ledger API - EV Charging Network
+  description: |
+    Meta Ledger APIs for Network Provider to store and manage ledger data from BAP and BPP.
+    
+    **Purpose:**
+    - Rating Ledger: Store all rating-related data from BAP and BPP for charging point providers
+    - Grievance Ledger: Store all support/grievance-related data from BAP and BPP
+    - Transaction Ledger: Store transaction data including amount, payment type, and timestamps
+    
+    **Communication Pattern:**
+    - BAP/BPP POST data to meta service endpoints (rating_ledger, grievance_ledger, transaction_ledger)
+    - Meta service responds immediately with ACK/NAK responses
+    
+    **JSON-LD Schema:**
+    - All APIs use JSON-LD format with @context, @type, and beckn: prefixes
+    - Compatible with existing Beckn protocol specifications
+  version: 1.0.0
+  contact:
+    name: Meta Ledger API Support
+    email: support@metaledger.network
+
+servers:
+  - url: http://localhost:8090
+    description: Local Meta Service (Development)
+  - url: http://meta-service:8090
+    description: Meta Service (Docker)
+
+tags:
+  - name: Rating Ledger
+    description: Store and manage rating data from BAP/BPP
+  - name: Grievance Ledger
+    description: Store and manage support/grievance data from BAP/BPP
+  - name: Transaction Ledger
+    description: Store and manage transaction data from BAP/BPP
+
+paths:
+  /rating_ledger:
+    post:
+      tags:
+        - Rating Ledger
+      summary: Submit rating data to ledger
+      description: |
+        Store rating and feedback data from BAP/BPP to the network's rating ledger.
+        Returns ACK/NAK response immediately.
+      operationId: ratingLedger
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RatingLedgerRequest'
+            example:
+              context:
+                version: "2.0.0"
+                bap_id: "ev-charging.sandbox1.com"
+                bap_uri: "https://bap.example.com"
+                bpp_id: "charging-provider.com"
+                bpp_uri: "https://bpp.example.com"
+                transaction_id: "txn-12345"
+                message_id: "msg-001"
+                timestamp: "2025-01-27T10:00:00Z"
+                schema_context:
+                  - "https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld"
+              message:
+                feedback:
+                  "@context": "https://becknprotocol.io/schemas/core/v2/Feedback/schema-context.jsonld"
+                  "@type": "beckn:Feedback"
+                  feedbackId: "feedback-001"
+                  rating:
+                    "@context": "https://becknprotocol.io/schemas/core/v2/Rating/schema-context.jsonld"
+                    "@type": "beckn:Rating"
+                    ratingId: "rating-001"
+                    value: 5
+                    best: 5
+                    worst: 1
+                    category: "fulfillment"
+                    feedbackForm:
+                      "@type": "beckn:Form"
+                      id: "feedback-form-001"
+                      fields:
+                        - id: "comments"
+                          type: "text"
+                          label: "Additional Comments"
+                          value: "Excellent charging experience!"
+                        - id: "tags"
+                          type: "tags"
+                          label: "Tags"
+                          value: ["fast-charging", "easy-to-use", "clean-station"]
+                  aggregateRating:
+                    value: 4.5
+                    count: 235
+                    best: 5
+                    worst: 1
+      responses:
+        '200':
+          description: ACK - Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AckResponse'
+        '400':
+          description: NAK - Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: NAK - Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /grievance_ledger/request:
+    post:
+      tags:
+        - Grievance Ledger
+      summary: Submit grievance/support request to ledger
+      description: |
+        Store support request and grievance data from BAP/BPP to the network's grievance ledger.
+        This endpoint is called when a grievance/support request is initiated.
+        Returns ACK/NAK response immediately.
+      operationId: grievanceLedgerRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GrievanceLedgerRequest'
+            example:
+              context:
+                version: "2.0.0"
+                domain: "beckn.one:deg:ev-charging"
+                bap_id: "ev-charging.sandbox1.com"
+                bap_uri: "https://bap.example.com"
+                bpp_id: "charging-provider.com"
+                bpp_uri: "https://bpp.example.com"
+                transaction_id: "txn-12345"
+                message_id: "msg-002"
+                timestamp: "2025-01-27T10:00:00Z"
+                ttl: "PT30S"
+                schema_context:
+                  - "https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld"
+              message:
+                order:
+                  "@context": "https://becknprotocol.io/schemas/core/v2/Order/schema-context.jsonld"
+                  "@type": "beckn:Order"
+                  "beckn:id": "order-bpp-789012"
+                support:
+                  - "@context": "https://becknprotocol.io/schemas/core/v2/SupportInfo/schema-context.jsonld"
+                    "@type": "beckn:SupportInfo"
+                    type: "order"
+                    url: "https://ecopower.com/support/order/order-bpp-789012"
+                    "beckn:issueType": "charging_failure"
+                    "beckn:description": "Charging stopped unexpectedly"
+                    "beckn:priority": "high"
+                    "beckn:status": "requetsed"
+                "beckn:timestamp": "2025-01-27T10:00:00Z"
+      responses:
+        '200':
+          description: ACK - Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AckResponse'
+        '400':
+          description: NAK - Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: NAK - Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /grievance_ledger/response:
+    post:
+      tags:
+        - Grievance Ledger
+      summary: Submit grievance/support response to ledger
+      description: |
+        Store support response data from BPP to the network's grievance ledger.
+        This endpoint is called by BPP after providing support information via on_support callback.
+        Network provider can track support channels, contact information, and support URLs provided by BPP.
+        Returns ACK/NAK response immediately.
+      operationId: grievanceLedgerResponse
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GrievanceLedgerResponse'
+            example:
+              context:
+                version: "2.0.0"
+                action: "grievance_ledger_response"
+                domain: "beckn.one:deg:ev-charging"
+                location:
+                  country:
+                    code: "IND"
+                  city:
+                    code: "std:080"
+                bap_id: "ev-charging.sandbox1.com"
+                bap_uri: "https://bap.example.com"
+                bpp_id: "charging-provider.com"
+                bpp_uri: "https://bpp.example.com"
+                transaction_id: "txn-12345"
+                message_id: "msg-003"
+                timestamp: "2025-01-27T10:00:00Z"
+                ttl: "PT30S"
+                schema_context:
+                  - "https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld"
+              message:
+                order:
+                  "@context": "https://becknprotocol.io/schemas/core/v2/Order/schema-context.jsonld"
+                  "@type": "beckn:Order"
+                  "beckn:id": "order-bpp-789012"
+                support:
+                  - "@context": "https://becknprotocol.io/schemas/core/v2/SupportInfo/schema-context.jsonld"
+                    "@type": "beckn:SupportInfo"
+                    type: "order"
+                    ref_id: "order-bpp-789012"
+                    channels:
+                      - type: "phone"
+                        value: "+91-80-12345678"
+                      - type: "email"
+                        value: "support@ecopower.com"
+                      - type: "web"
+                        value: "https://ecopower.com/support/ticket"
+                      - type: "chat"
+                        value: "https://ecopower.com/chat"
+                    url: "https://ecopower.com/support/order/order-bpp-789012"
+                    "beckn:issueType": "charging_failure"
+                    "beckn:description": "Charging stopped unexpectedly"
+                    "beckn:priority": "high"
+                    "beckn:status": "open"
+                "beckn:timestamp": "2025-01-27T10:00:00Z"
+      responses:
+        '200':
+          description: ACK - Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AckResponse'
+        '400':
+          description: NAK - Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: NAK - Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transaction_ledger:
+    post:
+      tags:
+        - Transaction Ledger
+      summary: Submit transaction data to ledger
+      description: |
+        Store transaction data from BAP/BPP to the network's transaction ledger.
+        Returns ACK/NAK response immediately.
+      operationId: transactionLedger
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionLedgerRequest'
+            example:
+              context:
+                version: "2.0.0"
+                domain: "beckn.one:deg:ev-charging"
+                bap_id: "ev-charging.sandbox1.com"
+                bap_uri: "https://bap.example.com"
+                bpp_id: "charging-provider.com"
+                bpp_uri: "https://bpp.example.com"
+                transaction_id: "txn-12345"
+                message_id: "msg-004"
+                timestamp: "2025-01-27T10:00:00Z"
+                schema_context:
+                  - "https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld"
+              message:
+                "beckn:payment":
+                  "@context": "https://becknprotocol.io/schemas/core/v2/Payment/schema-context.jsonld"
+                  "@type": "beckn:Payment"
+                  "beckn:id": "payment-123e4567-e89b-12d3-a456-426614174000"
+                  "beckn:status": "PAID"
+                  "beckn:amount":
+                    currency: "INR"
+                    value: 100.0
+                  "beckn:paymentURL": "https://payments.bluechargenet-aggregator.io/pay?transaction_id=$transaction_id&amount=$amount"
+                  "beckn:txnRef": "TXN-123456789"
+                  "beckn:paidAt": "2025-01-27T10:05:00Z"
+                  "beckn:method":
+                    "@type": "beckn:PaymentMethod"
+                    type: "schema:UPI"
+                    details:
+                      vpa: "user@paytm"
+                  "beckn:acceptedPaymentMethods": ["schema:BankTransfer", "schema:UPI", "schema:Wallet"]
+                  "beckn:beneficiary": "BPP"
+      responses:
+        '200':
+          description: ACK - Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AckResponse'
+        '400':
+          description: NAK - Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: NAK - Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    AckResponse:
+      type: object
+      properties:
+        message:
+          type: object
+          properties:
+            ack:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: ["ACK"]
+      example:
+        message:
+          ack:
+            status: "ACK"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            type:
+              type: string
+            code:
+              type: string
+            path:
+              type: string
+            message:
+              type: string
+
+    Context:
+      type: object
+      properties:
+        version:
+          type: string
+          example: "2.0.0"
+        action:
+          type: string
+        domain:
+          type: string
+          example: "beckn.one:deg:ev-charging"
+        location:
+          type: object
+          properties:
+            country:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "IND"
+            city:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "std:080"
+        bap_id:
+          type: string
+        bap_uri:
+          type: string
+          format: uri
+        bpp_id:
+          type: string
+        bpp_uri:
+          type: string
+          format: uri
+        transaction_id:
+          type: string
+        message_id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        ttl:
+          type: string
+          example: "PT30S"
+        schema_context:
+          type: array
+          items:
+            type: string
+            format: uri
+
+    RatingLedgerRequest:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/Context'
+        message:
+          type: object
+          properties:
+            feedback:
+              $ref: '#/components/schemas/Feedback'
+
+    GrievanceLedgerRequest:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/Context'
+        message:
+          type: object
+          properties:
+            order:
+              $ref: '#/components/schemas/Order'
+            support:
+              type: array
+              items:
+                $ref: '#/components/schemas/SupportInfo'
+            "beckn:timestamp":
+              type: string
+              format: date-time
+              description: Timestamp when the grievance request was created
+
+    GrievanceLedgerResponse:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/Context'
+        message:
+          type: object
+          properties:
+            order:
+              $ref: '#/components/schemas/Order'
+            support:
+              type: array
+              items:
+                $ref: '#/components/schemas/SupportInfoWithChannels'
+            "beckn:timestamp":
+              type: string
+              format: date-time
+              description: Timestamp when the grievance response was created
+
+    TransactionLedgerRequest:
+      type: object
+      properties:
+        context:
+          $ref: '#/components/schemas/Context'
+        message:
+          type: object
+          properties:
+            "beckn:payment":
+              $ref: '#/components/schemas/Payment'
+
+    Feedback:
+      type: object
+      properties:
+        "@context":
+          type: string
+          format: uri
+          example: "https://becknprotocol.io/schemas/core/v2/Feedback/schema-context.jsonld"
+        "@type":
+          type: string
+          example: "beckn:Feedback"
+        feedbackId:
+          type: string
+          example: "feedback-001"
+        rating:
+          $ref: '#/components/schemas/Rating'
+        aggregateRating:
+          $ref: '#/components/schemas/AggregateRating'
+
+    Rating:
+      type: object
+      properties:
+        "@context":
+          type: string
+          format: uri
+          example: "https://becknprotocol.io/schemas/core/v2/Rating/schema-context.jsonld"
+        "@type":
+          type: string
+          example: "beckn:Rating"
+        ratingId:
+          type: string
+          example: "rating-001"
+        value:
+          type: number
+          example: 5
+        best:
+          type: number
+          example: 5
+        worst:
+          type: number
+          example: 1
+        category:
+          type: string
+          enum: ["fulfillment", "provider", "item"]
+          example: "fulfillment"
+        feedbackForm:
+          $ref: '#/components/schemas/FeedbackForm'
+
+    FeedbackForm:
+      type: object
+      properties:
+        "@type":
+          type: string
+          example: "beckn:Form"
+        id:
+          type: string
+          example: "feedback-form-001"
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/FormField'
+
+    FormField:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "comments"
+        type:
+          type: string
+          enum: ["text", "tags", "number", "boolean"]
+          example: "text"
+        label:
+          type: string
+          example: "Additional Comments"
+        value:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+            - type: number
+            - type: boolean
+
+    AggregateRating:
+      type: object
+      properties:
+        value:
+          type: number
+          format: float
+          example: 4.5
+        count:
+          type: integer
+          example: 235
+        best:
+          type: number
+          example: 5
+        worst:
+          type: number
+          example: 1
+
+    Order:
+      type: object
+      properties:
+        "@context":
+          type: string
+          format: uri
+          example: "https://becknprotocol.io/schemas/core/v2/Order/schema-context.jsonld"
+        "@type":
+          type: string
+          example: "beckn:Order"
+        "beckn:id":
+          type: string
+          example: "order-bpp-789012"
+
+    SupportInfo:
+      type: object
+      properties:
+        "@context":
+          type: string
+          format: uri
+          example: "https://becknprotocol.io/schemas/core/v2/SupportInfo/schema-context.jsonld"
+        "@type":
+          type: string
+          example: "beckn:SupportInfo"
+        type:
+          type: string
+          enum: ["order", "fulfillment", "item", "payment"]
+          example: "order"
+        url:
+          type: string
+          format: uri
+          example: "https://ecopower.com/support/order/order-bpp-789012"
+        "beckn:issueType":
+          type: string
+          example: "charging_failure"
+        "beckn:description":
+          type: string
+          example: "Charging stopped unexpectedly"
+        "beckn:priority":
+          type: string
+          enum: ["low", "medium", "high", "critical"]
+          example: "high"
+        "beckn:status":
+          type: string
+          example: "requetsed"
+
+    SupportInfoWithChannels:
+      allOf:
+        - $ref: '#/components/schemas/SupportInfo'
+        - type: object
+          properties:
+            ref_id:
+              type: string
+              example: "order-bpp-789012"
+            channels:
+              type: array
+              items:
+                $ref: '#/components/schemas/SupportChannel'
+
+    SupportChannel:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: ["phone", "email", "web", "chat"]
+          example: "phone"
+        value:
+          type: string
+          example: "+91-80-12345678"
+
+    Payment:
+      type: object
+      properties:
+        "@context":
+          type: string
+          format: uri
+          example: "https://becknprotocol.io/schemas/core/v2/Payment/schema-context.jsonld"
+        "@type":
+          type: string
+          example: "beckn:Payment"
+        "beckn:id":
+          type: string
+          example: "payment-123e4567-e89b-12d3-a456-426614174000"
+        "beckn:status":
+          type: string
+          enum: ["PENDING", "PAID", "FAILED", "REFUNDED"]
+          example: "PAID"
+        "beckn:amount":
+          $ref: '#/components/schemas/Money'
+        "beckn:paymentURL":
+          type: string
+          format: uri
+          example: "https://payments.bluechargenet-aggregator.io/pay?transaction_id=$transaction_id&amount=$amount"
+        "beckn:txnRef":
+          type: string
+          example: "TXN-123456789"
+        "beckn:paidAt":
+          type: string
+          format: date-time
+          example: "2025-01-27T10:05:00Z"
+        "beckn:method":
+          $ref: '#/components/schemas/PaymentMethod'
+        "beckn:acceptedPaymentMethods":
+          type: array
+          items:
+            type: string
+            example: "schema:BankTransfer"
+          example: ["schema:BankTransfer", "schema:UPI", "schema:Wallet"]
+        "beckn:beneficiary":
+          type: string
+          enum: ["BAP", "BPP"]
+          example: "BPP"
+
+    Money:
+      type: object
+      properties:
+        currency:
+          type: string
+          example: "INR"
+        value:
+          type: number
+          format: double
+          example: 100.0
+
+    PaymentMethod:
+      type: object
+      properties:
+        "@type":
+          type: string
+          example: "beckn:PaymentMethod"
+        type:
+          type: string
+          example: "schema:UPI"
+        details:
+          type: object
+          properties:
+            vpa:
+              type: string
+              example: "user@paytm"

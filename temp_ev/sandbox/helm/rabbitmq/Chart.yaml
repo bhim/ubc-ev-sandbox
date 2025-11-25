@@ -1,0 +1,14 @@
+apiVersion: v2
+name: ev-charging-rabbitmq-sandbox
+description: A Helm chart for EV Charging RabbitMQ Sandbox (RabbitMQ, Redis, Mock Services)
+type: application
+version: 0.1.0
+appVersion: "latest"
+keywords:
+  - ev-charging
+  - rabbitmq
+  - sandbox
+  - mock-services
+maintainers:
+  - name: NBSL TEAM
+

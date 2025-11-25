@@ -1,0 +1,106 @@
+{
+  "context": {
+    "version": "2.0.0",
+    "action": "select",
+    "domain": "beckn.one:deg:ev-charging",
+    "location": {
+      "country": {
+        "code": "IND"
+      },
+      "city": {
+        "code": "std:080"
+      }
+    },
+    "bap_id": "ev-charging.sandbox1.com",
+    "bap_uri": "http://ev-charging-kafka-bap-onix-kafka-bap-service:8001/bap/receiver",
+    "bpp_id": "ev-charging.sandbox2.com",
+    "bpp_uri": "http://ev-charging-kafka-bpp-onix-kafka-bpp-service:8002/bpp/receiver",
+    "transaction_id": "550e8400-e29b-41d4-a716-446655440000",
+    "message_id": "660e8400-e29b-41d4-a716-446655440001",
+    "timestamp": "2025-01-27T10:00:00Z",
+    "ttl": "PT30S",
+    "schema_context": [
+      "https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld"
+    ]
+  },
+  "message": {
+    "order": {
+      "@context": "https://becknprotocol.io/schemas/core/v1/Order/schema-context.jsonld",
+      "@type": "beckn:Order",
+      "beckn:id": "order-ev-charging-001",
+      "beckn:orderStatus": "QUOTE_REQUESTED",
+      "beckn:seller": "ecopower-charging",
+      "beckn:buyer": "user-12345",
+      "beckn:orderValue": {
+        "currency": "INR",
+        "value": 100.0
+      },
+      "beckn:orderItems": [
+        {
+          "beckn:lineId": "line-001",
+          "beckn:orderedItem": "ev-charger-ccs2-001",
+          "beckn:quantity": 2.5,
+          "beckn:acceptedOffer": {
+            "@context": "https://becknprotocol.io/schemas/core/v1/Offer/schema-context.jsonld",
+            "@type": "beckn:Offer",
+            "beckn:id": "offer-ccs2-60kw-kwh",
+            "beckn:descriptor": {
+              "@type": "beckn:Descriptor",
+              "schema:name": "Per-kWh Tariff - CCS2 60kW"
+            },
+            "beckn:items": ["ev-charger-ccs2-001"],
+            "beckn:price": {
+              "currency": "INR",
+              "value": 18.0,
+              "applicableQuantity": {
+                "unitText": "Kilowatt Hour",
+                "unitCode": "KWH",
+                "unitQuantity": 1
+              }
+            },
+            "beckn:validity": {
+              "@type": "beckn:TimePeriod",
+              "schema:startDate": "2024-10-01T00:00:00Z",
+              "schema:endDate": "2025-01-15T23:59:59Z"
+            },
+            "beckn:acceptedPaymentMethod": ["UPI", "Card", "Wallet"],
+            "beckn:offerAttributes": {
+              "@context": "https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/draft/schema/EvChargingService/v1/context.jsonld",
+              "@type": "ChargingOffer",
+              "buyerFinderFee": {
+                "feeType": "PERCENTAGE",
+                "feeValue": 2.5
+              },
+              "idleFeePolicy": "₹2/min after 10 min post-charge"
+            }
+          }
+        }
+      ],
+      "beckn:fulfillment": {
+        "@context": "https://becknprotocol.io/schemas/core/v1/Fulfillment/schema-context.jsonld",
+        "@type": "beckn:Fulfillment",
+        "beckn:id": "fulfillment-charging-001",
+        "beckn:mode": "RESERVATION",
+        "beckn:deliveryAttributes": {
+          "@context": "https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/draft/schema/EvChargingService/v1/context.jsonld",
+          "@type": "ChargingSession",
+          "sessionStatus": "PENDING",
+          "authorizationMode": "APP_QR",
+          "connectorType": "CCS2",
+          "maxPowerKW": 60,
+          "reservationId": "RESV-984532",
+          "gracePeriodMinutes": 10
+        }
+      },
+      "beckn:orderAttributes": {
+        "@context": "https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/draft/schema/EvChargingService/v1/context.jsonld",
+        "@type": "ChargingSession",
+        "buyerFinderFee": {
+          "feeType": "PERCENTAGE",
+          "feeValue": 2.5
+        }
+      }
+    }
+  }
+}
+

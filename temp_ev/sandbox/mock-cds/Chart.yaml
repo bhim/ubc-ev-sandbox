@@ -1,0 +1,7 @@
+apiVersion: v2
+name: mock-cds
+description: Helm chart for Mock CDS (Catalog Discovery Service)
+type: application
+version: 0.1.0
+appVersion: latest
+

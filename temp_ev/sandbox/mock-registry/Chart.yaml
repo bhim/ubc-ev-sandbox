@@ -1,0 +1,7 @@
+apiVersion: v2
+name: mock-registry
+description: Helm chart for Mock Registry Service
+type: application
+version: 0.1.0
+appVersion: latest
+

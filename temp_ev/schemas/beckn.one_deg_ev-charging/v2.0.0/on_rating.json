@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "on_rating",
+  "type": "object",
+  "properties": {
+    "context": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "Version of the Beckn protocol"
+        },
+        "action": {
+          "type": "string",
+          "enum": ["on_rating"],
+          "description": "API endpoint callback"
+        },
+        "domain": {
+          "type": "string",
+          "description": "Identifier of the domain",
+          "pattern": "^(dent:ev-charging:|ev_charging_network|beckn.one:deg:ev-charging)"
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "country": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "description": "Country code as per ISO 3166-1 alpha-3 standard"
+                }
+              },
+              "required": ["code"]
+            },
+            "city": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "description": "City code"
+                }
+              },
+              "required": ["code"]
+            }
+          },
+          "required": ["country", "city"]
+        },
+        "bap_id": {
+          "type": "string",
+          "description": "Identification of the BAP"
+        },
+        "bap_uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "BAP endpoint"
+        },
+        "bpp_id": {
+          "type": "string",
+          "description": "Identification of the BPP"
+        },
+        "bpp_uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "BPP endpoint"
+        },
+        "transaction_id": {
+          "type": "string",
+          "description": "Transaction identifier"
+        },
+        "message_id": {
+          "type": "string",
+          "description": "Message identifier"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Time at which the response was generated"
+        },
+        "ttl": {
+          "type": "string",
+          "description": "Time to live (ISO 8601 duration format)"
+        },
+        "schema_context": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "description": "Schema context URLs"
+        }
+      },
+      "required": ["version", "action", "domain", "location", "bap_id", "bap_uri", "bpp_id", "bpp_uri", "transaction_id", "message_id", "timestamp"]
+    },
+    "message": {
+      "type": "object",
+      "properties": {
+        "feedback": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Feedback identifier"
+            },
+            "feedback_form": {
+              "type": "object",
+              "description": "Feedback form details"
+            }
+          }
+        },
+        "rating": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Rating identifier"
+            },
+            "value": {
+              "type": "number",
+              "description": "Rating value"
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "required": ["context", "message"],
+  "additionalProperties": false
+}

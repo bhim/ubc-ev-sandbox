@@ -1,0 +1,354 @@
+# Default values for onix-api-microservice
+# This is a YAML-formatted file.
+
+# Name override - if set, replaces the chart name in resource names
+# Example: nameOverride: "on_discover" will create names like "ev-charging-bap-onix-api-on_discover-bap"
+# nameOverride: ""
+
+# Application configuration
+appName: onix-ev-charging
+component: bap  # bap or bpp
+
+# Image configuration
+image:
+  repository: manendrapalsingh/onix-bap-plugin
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# Replica count
+replicaCount: 1
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8001
+  targetPort: 8001
+
+# Redis configuration
+redis:
+  enabled: true
+  # Hostname for Redis service - defaults to the service name created by this chart
+  # Format: <release-name>-<chart-name>-redis-<component>
+  # Example: ev-charging-bap-onix-api-microservice-redis-bap
+  host: ""  # If empty, will be auto-generated based on release name
+  image:
+    repository: redis
+    tag: alpine
+  service:
+    port: 6379
+    targetPort: 6379
+  persistence:
+    enabled: false
+    size: 10Gi
+    storageClass: ""
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  healthcheck:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 5
+
+# Application resources
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+# Environment variables
+env:
+  - name: CONFIG_FILE
+    value: /app/config/adapter.yaml
+
+# Configuration files
+config:
+  adapter: |
+    appName: "onix-ev-charging"
+    
+    log:
+      level: debug
+      destinations:
+        - type: stdout
+      contextKeys:
+        - transaction_id
+        - message_id
+        - subscriber_id
+        - module_id
+    
+    http:
+      port: 8001
+      timeout:
+        read: 30
+        write: 30
+        idle: 30
+    
+    pluginManager:
+      root: /app/plugins
+    
+    modules:
+      - name: bapTxnReceiver
+        path: /bap/receiver/
+        handler:
+          type: std
+          role: bap
+          httpClientConfig:
+            maxIdleConns: 1000
+            maxIdleConnsPerHost: 200
+            idleConnTimeout: 300s
+            responseHeaderTimeout: 5s
+          plugins:
+            registry:
+              id: registry
+              config:
+                url: http://ev-charging-mock-registry:3030
+                retry_max: 3
+                retry_wait_min: 100ms
+                retry_wait_max: 500ms
+            keyManager:
+              id: simplekeymanager
+              config:
+                networkParticipant: ev-charging.sandbox1.com
+                keyId: bap-key-1
+                signingPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
+                signingPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+                encrPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
+                encrPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+            cache:
+              id: cache
+              config:
+                addr: ev-charging-redis-onix-bap:6379
+            schemaValidator:
+              id: schemavalidator
+              config:
+                schemaDir: /app/schemas
+            signValidator:
+              id: signvalidator
+            router:
+              id: router
+              config:
+                routingConfig: /app/config/onix-bap/bap_receiver_routing.yaml
+            middleware:
+              - id: reqpreprocessor
+                config:
+                  uuidKeys: transaction_id,message_id
+                  role: bap
+          steps:
+            - validateSign
+            - addRoute
+            - validateSchema
+    
+      - name: bapTxnCaller
+        path: /bap/caller/
+        handler:
+          type: std
+          role: bap
+          httpClientConfig:
+            maxIdleConns: 1000
+            maxIdleConnsPerHost: 200
+            idleConnTimeout: 300s
+            responseHeaderTimeout: 5s
+          plugins:
+            registry:
+              id: registry
+              config:
+                url: http://ev-charging-mock-registry:3030
+                retry_max: 3
+                retry_wait_min: 100ms
+                retry_wait_max: 500ms
+            keyManager:
+              id: simplekeymanager
+              config:
+                networkParticipant: ev-charging.sandbox1.com
+                keyId: bap-key-1
+                signingPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
+                signingPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+                encrPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
+                encrPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+            cache:
+              id: cache
+              config:
+                addr: ev-charging-redis-onix-bap:6379
+            schemaValidator:
+              id: schemavalidator
+              config:
+                schemaDir: /app/schemas
+            router:
+              id: router
+              config:
+                routingConfig: /app/config/onix-bap/bap_caller_routing.yaml
+            signer:
+              id: signer
+            middleware:
+              - id: reqpreprocessor
+                config:
+                  uuidKeys: transaction_id,message_id
+                  role: bap
+          steps:
+            - validateSchema
+            - addRoute
+            - sign
+    
+    plugins:
+      - registry
+      - simplekeymanager
+      - cache
+      - schemavalidator
+      - signvalidator
+      - router
+      - signer
+      - reqpreprocessor
+
+  routing:
+    caller: |
+      # ONIX BAP Caller Routing Configuration
+      # Microservice Architecture: Routes to BPP service, which then routes to different mock BPP services
+      
+      routingRules:
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://ev-charging-mock-cds:8082/csd
+            excludeAction: false
+          endpoints:
+            - discover
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://ev-charging-bpp-onix-api-microservice-bpp-service:8002/bpp/receiver
+            excludeAction: false
+          endpoints:
+            - select
+            - init
+            - confirm
+            - update
+            - track
+            - cancel
+            - rating
+            - support
+    
+    receiver: |
+      # ONIX BAP Receiver Routing Configuration
+      # Microservice Architecture: Each callback routes to different mock BAP services
+      # Note: The router automatically appends the endpoint name to the base URL
+      # Example: url: http://ev-charging-mock-bap-on-confirm:9004 + endpoint "on_confirm" 
+      #          results in: http://ev-charging-mock-bap-on-confirm:9004/on_confirm
+      
+      routingRules:
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://ev-charging-mock-bap-on-discover:9001
+            excludeAction: false
+          endpoints:
+            - on_discover
+            
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://ev-charging-mock-bap-on-select:9002
+            excludeAction: false
+          endpoints:
+            - on_select
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://ev-charging-mock-bap-on-init:9003
+            excludeAction: false
+          endpoints:
+            - on_init
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://ev-charging-mock-bap-on-confirm:9004
+            excludeAction: false
+          endpoints:
+            - on_confirm
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://ev-charging-mock-bap-on-status:9005
+            excludeAction: false
+          endpoints:
+            - on_status
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://ev-charging-mock-bap-on-track:9006
+            excludeAction: false
+          endpoints:
+            - on_track
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://ev-charging-mock-bap-on-cancel:9007
+            excludeAction: false
+          endpoints:
+            - on_cancel
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://ev-charging-mock-bap-on-update:9008
+            excludeAction: false
+          endpoints:
+            - on_update
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://ev-charging-mock-bap-on-rating:9009
+            excludeAction: false
+          endpoints:
+            - on_rating
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://ev-charging-mock-bap-on-support:9010
+            excludeAction: false
+          endpoints:
+            - on_support
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Pod annotations
+podAnnotations: {}
+
+# Service annotations
+serviceAnnotations: {}
+

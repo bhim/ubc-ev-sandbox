@@ -1,0 +1,33 @@
+# BPP Caller Routing Configuration
+# Phase 1: Receives on_discover from mock-bpp (HTTP) -> sends HTTP to CDS
+# Phase 2+: Receives other responses from mock-bpp (HTTP) -> sends HTTP to BAP-ONIX plugin
+
+routingRules:
+  # Phase 1: on_discover response from mock-bpp -> sends HTTP to CDS
+  # Receives HTTP callback from mock-bpp and forwards to CDS
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-cds:8082/csd
+      excludeAction: false
+    endpoints:
+      - on_discover
+
+  # Phase 2+: Other responses from mock-bpp -> sends HTTP to BAP-ONIX plugin
+  # Receives HTTP callbacks from mock-bpp and forwards to BAP plugin using bap_uri from context
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: bap
+    target: {}
+    endpoints:
+      - on_select
+      - on_init
+      - on_confirm
+      - on_status
+      - on_track
+      - on_cancel
+      - on_update
+      - on_rating
+      - on_support
+

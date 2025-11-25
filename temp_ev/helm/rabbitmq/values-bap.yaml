@@ -1,0 +1,25 @@
+# BAP-specific values for onix-rabbitmq
+component: bap
+
+# Replica count - ensure only 1 pod
+replicaCount: 1
+
+image:
+  repository: manendrapalsingh/onix-bap-plugin-rabbit-mq
+  tag: latest
+
+service:
+  port: 8001
+  targetPort: 8001
+
+redis:
+  enabled: true
+  service:
+    port: 6379
+
+env:
+  - name: RABBITMQ_USERNAME
+    value: admin
+  - name: RABBITMQ_PASSWORD
+    value: admin
+

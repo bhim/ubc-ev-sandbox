@@ -1,0 +1,16 @@
+# BAP-specific values for onix-api-microservice
+component: bap
+
+image:
+  repository: manendrapalsingh/onix-bap-plugin
+  tag: latest
+
+service:
+  port: 8001
+  targetPort: 8001
+
+redis:
+  enabled: true
+  service:
+    port: 6379
+

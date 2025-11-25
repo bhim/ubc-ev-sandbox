@@ -1,0 +1,493 @@
+version: '3.9'
+
+services:
+  # Redis for onix-bap-plugin
+  redis-onix-bap:
+    image: redis:alpine
+    pull_policy: always
+    container_name: redis-onix-bap
+    ports:
+      - "6379:6379"
+    networks:
+      - onix-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis for onix-bpp-plugin
+  redis-onix-bpp:
+    image: redis:alpine
+    pull_policy: always
+    container_name: redis-onix-bpp
+    ports:
+      - "6380:6379"
+    networks:
+      - onix-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Onix BAP Plugin
+  onix-bap-plugin:
+    image: manendrapalsingh/onix-bap-plugin:latest
+    pull_policy: always
+    container_name: onix-bap-plugin
+    ports:
+      - "8001:8001"
+    volumes:
+      # Mount config directory (writable for symlink creation, but original files won't be modified)
+      - ../../../../docker/api/microservice/config/onix-bap:/app/config/onix-bap
+      # Mount adapter.yaml directly to expected location
+      - ../../../../docker/api/microservice/config/onix-bap/adapter.yaml:/app/config/adapter.yaml:ro
+      # Mount schema directory (read-only)
+      - ../../../../schemas:/app/schemas:ro
+    environment:
+      - CONFIG_FILE=/app/config/adapter.yaml
+    restart: unless-stopped
+    depends_on:
+      redis-onix-bap:
+        condition: service_healthy
+      mock-registry:
+        condition: service_healthy
+    networks:
+      - onix-network
+
+  # Onix BPP Plugin
+  onix-bpp-plugin:
+    image: manendrapalsingh/onix-bpp-plugin:latest
+    pull_policy: always
+    container_name: onix-bpp-plugin
+    ports:
+      - "8002:8002"
+    volumes:
+      # Mount config directory (writable for symlink creation, but original files won't be modified)
+      - ../../../../docker/api/microservice/config/onix-bpp:/app/config/onix-bpp
+      # Mount adapter.yaml directly to expected location
+      - ../../../../docker/api/microservice/config/onix-bpp/adapter.yaml:/app/config/adapter.yaml:ro
+      # Mount schema directory (read-only)
+      - ../../../../schemas:/app/schemas:ro
+    environment:
+      - CONFIG_FILE=/app/config/adapter.yaml
+    restart: unless-stopped
+    depends_on:
+      redis-onix-bpp:
+        condition: service_healthy
+      mock-registry:
+        condition: service_healthy
+    networks:
+      - onix-network
+
+  # Mock CDS Service
+  mock-cds:
+    image: manendrapalsingh/mock-cds:latest
+    pull_policy: always
+    container_name: mock-cds
+    ports:
+      - "8082:8082"
+    volumes:
+      # Mount config file from local directory
+      - ./mock-cds_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      mock-registry:
+        condition: service_healthy
+
+  # Mock Registry Service
+  mock-registry:
+    image: manendrapalsingh/mock-registry:latest
+    pull_policy: always
+    container_name: mock-registry
+    ports:
+      - "3030:3030"
+    volumes:
+      # Mount config file from local directory
+      - ./mock-registry_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3030/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Mock BAP Services - Microservice Architecture: Each endpoint has its own service
+  mock-bap-discover:
+    image: manendrapalsingh/mock-bap:latest
+    pull_policy: always
+    container_name: mock-bap-discover
+    ports:
+      - "9001:9001"
+    volumes:
+      - ./mock-bap_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bap-select:
+    image: manendrapalsingh/mock-bap:latest
+    pull_policy: always
+    container_name: mock-bap-select
+    ports:
+      - "9002:9001"
+    volumes:
+      - ./mock-bap_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bap-init:
+    image: manendrapalsingh/mock-bap:latest
+    pull_policy: always
+    container_name: mock-bap-init
+    ports:
+      - "9003:9001"
+    volumes:
+      - ./mock-bap_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bap-confirm:
+    image: manendrapalsingh/mock-bap:latest
+    pull_policy: always
+    container_name: mock-bap-confirm
+    ports:
+      - "9004:9001"
+    volumes:
+      - ./mock-bap_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bap-status:
+    image: manendrapalsingh/mock-bap:latest
+    pull_policy: always
+    container_name: mock-bap-status
+    ports:
+      - "9005:9001"
+    volumes:
+      - ./mock-bap_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bap-track:
+    image: manendrapalsingh/mock-bap:latest
+    pull_policy: always
+    container_name: mock-bap-track
+    ports:
+      - "9006:9001"
+    volumes:
+      - ./mock-bap_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bap-cancel:
+    image: manendrapalsingh/mock-bap:latest
+    pull_policy: always
+    container_name: mock-bap-cancel
+    ports:
+      - "9007:9001"
+    volumes:
+      - ./mock-bap_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bap-update:
+    image: manendrapalsingh/mock-bap:latest
+    pull_policy: always
+    container_name: mock-bap-update
+    ports:
+      - "9008:9001"
+    volumes:
+      - ./mock-bap_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bap-rating:
+    image: manendrapalsingh/mock-bap:latest
+    pull_policy: always
+    container_name: mock-bap-rating
+    ports:
+      - "9009:9001"
+    volumes:
+      - ./mock-bap_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bap-support:
+    image: manendrapalsingh/mock-bap:latest
+    pull_policy: always
+    container_name: mock-bap-support
+    ports:
+      - "9010:9001"
+    volumes:
+      - ./mock-bap_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Mock BPP Services - Microservice Architecture: Each endpoint has its own service
+  mock-bpp-discover:
+    image: manendrapalsingh/mock-bpp:latest
+    pull_policy: always
+    container_name: mock-bpp-discover
+    ports:
+      - "9011:9002"
+    volumes:
+      - ./mock-bpp_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bpp-select:
+    image: manendrapalsingh/mock-bpp:latest
+    pull_policy: always
+    container_name: mock-bpp-select
+    ports:
+      - "9012:9002"
+    volumes:
+      - ./mock-bpp_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bpp-init:
+    image: manendrapalsingh/mock-bpp:latest
+    pull_policy: always
+    container_name: mock-bpp-init
+    ports:
+      - "9013:9002"
+    volumes:
+      - ./mock-bpp_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bpp-confirm:
+    image: manendrapalsingh/mock-bpp:latest
+    pull_policy: always
+    container_name: mock-bpp-confirm
+    ports:
+      - "9014:9002"
+    volumes:
+      - ./mock-bpp_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bpp-status:
+    image: manendrapalsingh/mock-bpp:latest
+    pull_policy: always
+    container_name: mock-bpp-status
+    ports:
+      - "9015:9002"
+    volumes:
+      - ./mock-bpp_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bpp-track:
+    image: manendrapalsingh/mock-bpp:latest
+    pull_policy: always
+    container_name: mock-bpp-track
+    ports:
+      - "9016:9002"
+    volumes:
+      - ./mock-bpp_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bpp-cancel:
+    image: manendrapalsingh/mock-bpp:latest
+    pull_policy: always
+    container_name: mock-bpp-cancel
+    ports:
+      - "9017:9002"
+    volumes:
+      - ./mock-bpp_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bpp-update:
+    image: manendrapalsingh/mock-bpp:latest
+    pull_policy: always
+    container_name: mock-bpp-update
+    ports:
+      - "9018:9002"
+    volumes:
+      - ./mock-bpp_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bpp-rating:
+    image: manendrapalsingh/mock-bpp:latest
+    pull_policy: always
+    container_name: mock-bpp-rating
+    ports:
+      - "9019:9002"
+    volumes:
+      - ./mock-bpp_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mock-bpp-support:
+    image: manendrapalsingh/mock-bpp:latest
+    pull_policy: always
+    container_name: mock-bpp-support
+    ports:
+      - "9020:9002"
+    volumes:
+      - ./mock-bpp_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  onix-network:
+    driver: bridge
+

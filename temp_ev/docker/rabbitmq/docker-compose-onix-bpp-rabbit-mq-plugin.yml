@@ -1,0 +1,78 @@
+version: '3.9'
+
+services:
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    pull_policy: always
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+      RABBITMQ_USERNAME: admin
+      RABBITMQ_PASSWORD: admin
+    networks:
+      - onix-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis for onix-bpp-plugin-rabbitmq
+  redis-bpp:
+    image: redis:alpine
+    pull_policy: always
+    container_name: redis-bpp
+    ports:
+      - "6380:6379"
+    networks:
+      - onix-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Onix BPP RabbitMQ Plugin
+  onix-bpp-plugin-rabbitmq:
+    image: manendrapalsingh/onix-bpp-plugin-rabbit-mq:latest
+    pull_policy: always
+    container_name: onix-bpp-plugin-rabbitmq
+    ports:
+      - "8002:8002"  # HTTP port for bppTxnReceiver endpoint
+    volumes:
+      # Mount config directory to the expected path in container
+      - ./config/onix-bpp:/app/config/message-baised/rabbit-mq/onix-bpp
+      # Mount schema directory (read-only)
+      - ../../schemas:/app/schemas:ro
+    environment:
+      - CONFIG_FILE=/app/config/message-baised/rabbit-mq/onix-bpp/adapter.yaml
+      - RABBITMQ_USERNAME=admin
+      - RABBITMQ_PASSWORD=admin
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis-bpp:
+        condition: service_healthy
+    networks:
+      - onix-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+networks:
+  onix-network:
+    driver: bridge
+

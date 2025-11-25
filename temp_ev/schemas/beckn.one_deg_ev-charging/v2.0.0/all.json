@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "all",
+  "type": "object",
+  "properties": {
+    "context": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string",
+          "description": "Identifier of the domain",
+          "pattern": "^(dent:ev-charging:|ev_charging_network|beckn.one:deg:ev-charging)"
+        },
+        "country": {
+          "type": "string",
+          "description": "Country code as per ISO 3166-1 alpha-2 standard"
+        },
+        "city": {
+          "type": "string",
+          "description": "City name"
+        },
+        "action": {
+          "type": "string",
+          "description": "API endpoint to be called"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the schema"
+        },
+        "core_version": {
+          "type": "string",
+          "description": "Core version of BECKN specification"
+        },
+        "bap_id": {
+          "type": "string",
+          "description": "Identification of the BAP"
+        },
+        "bap_uri": {
+          "type": "string",
+          "description": "BAP endpoint"
+        },
+        "bpp_id": {
+          "type": "string",
+          "description": "Identification of the BPP"
+        },
+        "bpp_uri": {
+          "type": "string",
+          "description": "BPP endpoint"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Time at which the request was generated"
+        },
+        "message_id": {
+          "type": "string",
+          "description": "Message identifier"
+        },
+        "transaction_id": {
+          "type": "string",
+          "description": "Transaction identifier"
+        },
+        "ttl": {
+          "type": "string",
+          "description": "Time to live"
+        }
+      },
+      "required": ["domain", "action", "version", "core_version", "bap_id", "bap_uri", "timestamp", "message_id", "transaction_id"]
+    },
+    "message": {
+      "type": "object"
+    }
+  },
+  "required": ["context", "message"],
+  "additionalProperties": true
+}

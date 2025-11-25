@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rating",
+  "type": "object",
+  "properties": {
+    "context": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "Version of the Beckn protocol"
+        },
+        "action": {
+          "type": "string",
+          "enum": ["rating"],
+          "description": "API endpoint to be called"
+        },
+        "domain": {
+          "type": "string",
+          "description": "Identifier of the domain",
+          "pattern": "^(dent:ev-charging:|ev_charging_network|beckn.one:deg:ev-charging)"
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "country": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "description": "Country code as per ISO 3166-1 alpha-3 standard"
+                }
+              },
+              "required": ["code"]
+            },
+            "city": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "description": "City code"
+                }
+              },
+              "required": ["code"]
+            }
+          },
+          "required": ["country", "city"]
+        },
+        "bap_id": {
+          "type": "string",
+          "description": "Identification of the BAP"
+        },
+        "bap_uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "BAP endpoint"
+        },
+        "bpp_id": {
+          "type": "string",
+          "description": "Identification of the BPP"
+        },
+        "bpp_uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "BPP endpoint"
+        },
+        "transaction_id": {
+          "type": "string",
+          "description": "Transaction identifier"
+        },
+        "message_id": {
+          "type": "string",
+          "description": "Message identifier"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Time at which the request was generated"
+        },
+        "ttl": {
+          "type": "string",
+          "description": "Time to live (ISO 8601 duration format)"
+        },
+        "schema_context": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "description": "Schema context URLs"
+        }
+      },
+      "required": ["version", "action", "domain", "location", "bap_id", "bap_uri", "bpp_id", "bpp_uri", "transaction_id", "message_id", "timestamp"]
+    },
+    "message": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Rating identifier (e.g., fulfillment ID)"
+        },
+        "value": {
+          "type": "number",
+          "description": "Rating value",
+          "minimum": 1
+        },
+        "best": {
+          "type": "number",
+          "description": "Best possible rating value"
+        },
+        "worst": {
+          "type": "number",
+          "description": "Worst possible rating value"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["fulfillment", "provider", "item"],
+          "description": "Category of the rating"
+        },
+        "feedback": {
+          "type": "object",
+          "properties": {
+            "comments": {
+              "type": "string",
+              "description": "Textual feedback comments"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Feedback tags"
+            }
+          }
+        }
+      },
+      "required": ["id", "value"]
+    }
+  },
+  "required": ["context", "message"],
+  "additionalProperties": false
+}

@@ -1,0 +1,56 @@
+{
+	"info": {
+		"_postman_id": "65d469fe-b469-40f7-b7f9-0479fc855cef",
+		"name": "BPP-DEG:EV-Charging-On-Select",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30848972"
+	},
+	"item": [
+		{
+			"name": "on_select",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"context\": {\n    \"version\": \"{{version}}\",\n    \"action\": \"on_select\",\n    \"domain\": \"{{domain}}\",\n    \"location\": {\n      \"country\": {\n        \"code\": \"IND\"\n      },\n      \"city\": {\n        \"code\": \"std:080\"\n      }\n    },\n    \"bap_id\": \"{{bap_id}}\",\n    \"bap_uri\": \"{{bap_uri}}\",\n    \"bpp_id\": \"{{bpp_id}}\",\n    \"bpp_uri\": \"{{bpp_uri}}\",\n    \"transaction_id\": \"{{transaction_id}}\",\n    \"message_id\": \"{{$guid}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"ttl\": \"PT30S\",\n    \"schema_context\": [\n      \"https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld\"\n    ]\n  },\n  \"message\": {\n    \"order\": {\n      \"@context\": \"https://becknprotocol.io/schemas/core/v2/Order/schema-context.jsonld\",\n      \"@type\": \"beckn:Order\",\n      \"beckn:id\": \"order-ev-charging-001\",\n      \"beckn:orderStatus\": \"QUOTE_REQUESTED\",\n      \"beckn:orderNumber\": \"ORD-2025-001\",\n      \"beckn:seller\": \"ecopower-charging\",\n      \"beckn:buyer\": \"user-12345\",\n      \"beckn:orderValue\": {\n        \"currency\": \"INR\",\n        \"value\": 100.0,\n        \"components\": [\n          {\n            \"type\": \"UNIT\",\n            \"value\": 45.0,\n            \"currency\": \"INR\",\n            \"description\": \"Charging session cost (2.5 kWh @ ₹18.00/kWh)\"\n          },\n          {\n            \"type\": \"FEE\",\n            \"value\": 10.0,\n            \"currency\": \"INR\",\n            \"description\": \"Service fee\"\n          },\n          {\n            \"type\": \"FEE\",\n            \"value\": 2.5,\n            \"currency\": \"INR\",\n            \"description\": \"Buyer finder fee (2.5%)\"\n          },\n          {\n            \"type\": \"SURCHARGE\",\n            \"value\": 5.0,\n            \"currency\": \"INR\",\n            \"description\": \"Surge price (10%)\"\n          },\n          {\n            \"type\": \"DISCOUNT\",\n            \"value\": -10.0,\n            \"currency\": \"INR\",\n            \"description\": \"Promotional discount\"\n          }\n        ]\n      },\n      \"beckn:orderItems\": [\n        {\n          \"beckn:lineId\": \"line-001\",\n          \"beckn:orderedItem\": \"ev-charger-ccs2-001\",\n          \"beckn:quantity\": 2.5,\n          \"beckn:acceptedOffer\": {\n            \"@context\": \"https://becknprotocol.io/schemas/core/v2/Offer/schema-context.jsonld\",\n            \"@type\": \"beckn:Offer\",\n            \"beckn:id\": \"offer-ccs2-60kw-kwh\",\n            \"beckn:descriptor\": {\n              \"name\": \"Per-kWh Tariff - CCS2 60kW\"\n            },\n            \"beckn:price\": {\n              \"currency\": \"INR\",\n              \"value\": 18.0,\n              \"applicableQuantity\": {\n                \"unitText\": \"Kilowatt Hour\",\n                \"unitCode\": \"KWH\",\n                \"unitQuantity\": 1\n              }\n            },\n            \"beckn:validity\": {\n              \"@type\": \"beckn:TimePeriod\",\n              \"schema:startDate\": \"2024-10-01T00:00:00Z\",\n              \"schema:endDate\": \"2025-01-15T23:59:59Z\"\n            },\n            \"beckn:acceptedPaymentMethod\": [\"UPI\", \"Card\", \"Wallet\"],\n            \"beckn:offerAttributes\": {\n              \"@type\": \"ChargingOffer\",\n              \"buyerFinderFee\": {\n                \"feeType\": \"PERCENTAGE\",\n                \"feeValue\": 2.5\n              },\n              \"idleFeePolicy\": \"₹2/min after 10 min post-charge\"\n            }\n          }\n        }\n      ],\n      \"beckn:fulfillment\": {\n        \"@context\": \"https://becknprotocol.io/schemas/core/v2/Fulfillment/schema-context.jsonld\",\n        \"@type\": \"beckn:Fulfillment\",\n        \"beckn:id\": \"fulfillment-charging-001\",\n        \"beckn:mode\": \"RESERVATION\",\n        \"beckn:status\": \"PENDING\",\n        \"beckn:deliveryAttributes\": {\n          \"@type\": \"ChargingSession\",\n          \"sessionStatus\": \"PENDING\",\n          \"authorizationMode\": \"APP_QR\",\n          \"connectorType\": \"CCS2\",\n          \"maxPowerKW\": 60,\n          \"reservationId\": \"RESV-984532\",\n          \"gracePeriodMinutes\": 10\n        }\n      },\n      \"beckn:payment\": {\n        \"@context\": \"https://becknprotocol.io/schemas/core/v2/Payment/schema-context.jsonld\",\n        \"@type\": \"beckn:Payment\",\n        \"beckn:status\": \"NOT_PAID\",\n        \"beckn:amount\": {\n          \"currency\": \"INR\",\n          \"value\": 100.0\n        },\n        \"beckn:acceptedPaymentMethods\": [\n          \"schema:BankTransfer\",\n          \"schema:UPI\",\n          \"schema:Wallet\"\n        ]\n      },\n      \"beckn:orderAttributes\": {\n        \"@type\": \"ChargingSession\",\n        \"buyerFinderFee\": {\n          \"feeType\": \"PERCENTAGE\",\n          \"feeValue\": 2.5\n        }\n      }\n    }\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{on_select_url}}",
+					"host": [
+						"{{on_select_url}}"
+					],
+					"path": []
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		}
+	]
+}
+

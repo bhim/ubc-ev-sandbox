@@ -1,0 +1,153 @@
+{
+	"info": {
+		"_postman_id": "meta-all-ledgers-001",
+		"name": "Meta-All-Ledgers",
+		"description": "Collection containing all meta ledger APIs for network provider",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30848972"
+	},
+	"item": [
+		{
+			"name": "rating_ledger",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"context\": {\n    \"version\": \"{{version}}\",\n    \"action\": \"rating_ledger\",\n    \"domain\": \"{{domain}}\",\n    \"location\": {\n      \"country\": {\n        \"code\": \"IND\"\n      },\n      \"city\": {\n        \"code\": \"std:080\"\n      }\n    },\n    \"bap_id\": \"{{bap_id}}\",\n    \"bap_uri\": \"{{bap_uri}}\",\n    \"bpp_id\": \"{{bpp_id}}\",\n    \"bpp_uri\": \"{{bpp_uri}}\",\n    \"transaction_id\": \"{{transaction_id}}\",\n    \"message_id\": \"{{$guid}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"ttl\": \"PT30S\",\n    \"schema_context\": [\n      \"https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld\"\n    ]\n  },\n  \"message\": {\n    \"ledger\": {\n      \"@context\": \"https://becknprotocol.io/schemas/core/v2/Ledger/schema-context.jsonld\",\n      \"@type\": \"beckn:Ledger\",\n      \"beckn:id\": \"rating-ledger-{{$guid}}\",\n      \"beckn:type\": \"RATING\",\n      \"beckn:entity\": {\n        \"@type\": \"beckn:Entity\",\n        \"beckn:type\": \"bap\",\n        \"beckn:id\": \"{{bap_id}}\"\n      },\n      \"beckn:reference\": {\n        \"@type\": \"beckn:Reference\",\n        \"beckn:orderId\": \"order-123456\",\n        \"beckn:fulfillmentId\": \"fulfillment-001\"\n      },\n      \"beckn:rating\": {\n        \"@context\": \"https://becknprotocol.io/schemas/core/v2/Rating/schema-context.jsonld\",\n        \"@type\": \"beckn:Rating\",\n        \"beckn:value\": 5,\n        \"beckn:best\": 5,\n        \"beckn:worst\": 1,\n        \"beckn:category\": \"fulfillment\"\n      },\n      \"beckn:feedback\": {\n        \"@context\": \"https://becknprotocol.io/schemas/core/v2/Feedback/schema-context.jsonld\",\n        \"@type\": \"beckn:Feedback\",\n        \"beckn:comments\": \"Excellent charging experience!\",\n        \"beckn:tags\": [\"fast-charging\", \"clean-station\"]\n      },\n      \"beckn:timestamp\": \"{{timestamp}}\"\n    }\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{meta_service_url}}/rating_ledger",
+					"host": [
+						"{{meta_service_url}}"
+					],
+					"path": [
+						"rating_ledger"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "grievance_ledger_request",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"context\": {\n    \"version\": \"{{version}}\",\n    \"action\": \"grievance_ledger_request\",\n    \"domain\": \"{{domain}}\",\n    \"location\": {\n      \"country\": {\n        \"code\": \"IND\"\n      },\n      \"city\": {\n        \"code\": \"std:080\"\n      }\n    },\n    \"bap_id\": \"{{bap_id}}\",\n    \"bap_uri\": \"{{bap_uri}}\",\n    \"bpp_id\": \"{{bpp_id}}\",\n    \"bpp_uri\": \"{{bpp_uri}}\",\n    \"transaction_id\": \"{{transaction_id}}\",\n    \"message_id\": \"{{$guid}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"ttl\": \"PT30S\",\n    \"schema_context\": [\n      \"https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld\"\n    ]\n  },\n  \"message\": {\n    \"ledger\": {\n      \"@context\": \"https://becknprotocol.io/schemas/core/v2/Ledger/schema-context.jsonld\",\n      \"@type\": \"beckn:Ledger\",\n      \"beckn:id\": \"grievance-ledger-request-{{$guid}}\",\n      \"beckn:type\": \"GRIEVANCE_REQUEST\",\n      \"beckn:entity\": {\n        \"@type\": \"beckn:Entity\",\n        \"beckn:type\": \"bap\",\n        \"beckn:id\": \"{{bap_id}}\"\n      },\n      \"beckn:reference\": {\n        \"@type\": \"beckn:Reference\",\n        \"beckn:refId\": \"order-789012\",\n        \"beckn:refType\": \"order\"\n      },\n      \"beckn:support\": {\n        \"@context\": \"https://becknprotocol.io/schemas/core/v2/SupportInfo/schema-context.jsonld\",\n        \"@type\": \"beckn:SupportInfo\",\n        \"beckn:issueType\": \"charging_failure\",\n        \"beckn:description\": \"Charging stopped unexpectedly\",\n        \"beckn:priority\": \"high\",\n        \"beckn:status\": \"open\"\n      },\n      \"beckn:timestamp\": \"{{timestamp}}\"\n    }\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{meta_service_url}}/grievance_ledger/request",
+					"host": [
+						"{{meta_service_url}}"
+					],
+					"path": [
+						"grievance_ledger",
+						"request"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "grievance_ledger_response",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"context\": {\n    \"version\": \"{{version}}\",\n    \"action\": \"grievance_ledger_response\",\n    \"domain\": \"{{domain}}\",\n    \"location\": {\n      \"country\": {\n        \"code\": \"IND\"\n      },\n      \"city\": {\n        \"code\": \"std:080\"\n      }\n    },\n    \"bap_id\": \"{{bap_id}}\",\n    \"bap_uri\": \"{{bap_uri}}\",\n    \"bpp_id\": \"{{bpp_id}}\",\n    \"bpp_uri\": \"{{bpp_uri}}\",\n    \"transaction_id\": \"{{transaction_id}}\",\n    \"message_id\": \"{{$guid}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"ttl\": \"PT30S\",\n    \"schema_context\": [\n      \"https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld\"\n    ]\n  },\n  \"message\": {\n    \"ledger\": {\n      \"@context\": \"https://becknprotocol.io/schemas/core/v2/Ledger/schema-context.jsonld\",\n      \"@type\": \"beckn:Ledger\",\n      \"beckn:id\": \"grievance-ledger-response-{{$guid}}\",\n      \"beckn:type\": \"GRIEVANCE_RESPONSE\",\n      \"beckn:entity\": {\n        \"@type\": \"beckn:Entity\",\n        \"beckn:type\": \"bpp\",\n        \"beckn:id\": \"{{bpp_id}}\"\n      },\n      \"beckn:reference\": {\n        \"@type\": \"beckn:Reference\",\n        \"beckn:refId\": \"order-789012\",\n        \"beckn:refType\": \"order\"\n      },\n      \"beckn:supportResponse\": {\n        \"@context\": \"https://becknprotocol.io/schemas/core/v2/SupportInfo/schema-context.jsonld\",\n        \"@type\": \"beckn:SupportInfo\",\n        \"beckn:phone\": \"+91-80-12345678\",\n        \"beckn:email\": \"support@ecopower.com\",\n        \"beckn:uri\": \"https://ecopower.com/support\",\n        \"beckn:issueType\": \"charging_failure\",\n        \"beckn:description\": \"Charging stopped unexpectedly\",\n        \"beckn:priority\": \"high\",\n        \"beckn:status\": \"open\"\n      },\n      \"beckn:timestamp\": \"{{timestamp}}\"\n    }\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{meta_service_url}}/grievance_ledger/response",
+					"host": [
+						"{{meta_service_url}}"
+					],
+					"path": [
+						"grievance_ledger",
+						"response"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "transaction_ledger",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"context\": {\n    \"version\": \"{{version}}\",\n    \"action\": \"transaction_ledger\",\n    \"domain\": \"{{domain}}\",\n    \"location\": {\n      \"country\": {\n        \"code\": \"IND\"\n      },\n      \"city\": {\n        \"code\": \"std:080\"\n      }\n    },\n    \"bap_id\": \"{{bap_id}}\",\n    \"bap_uri\": \"{{bap_uri}}\",\n    \"bpp_id\": \"{{bpp_id}}\",\n    \"bpp_uri\": \"{{bpp_uri}}\",\n    \"transaction_id\": \"{{transaction_id}}\",\n    \"message_id\": \"{{$guid}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"ttl\": \"PT30S\",\n    \"schema_context\": [\n      \"https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld\"\n    ]\n  },\n  \"message\": {\n    \"ledger\": {\n      \"@context\": \"https://becknprotocol.io/schemas/core/v2/Ledger/schema-context.jsonld\",\n      \"@type\": \"beckn:Ledger\",\n      \"beckn:id\": \"txn-ledger-{{$guid}}\",\n      \"beckn:type\": \"TRANSACTION\",\n      \"beckn:entity\": {\n        \"@type\": \"beckn:Entity\",\n        \"beckn:type\": \"bap\",\n        \"beckn:id\": \"{{bap_id}}\"\n      },\n      \"beckn:reference\": {\n        \"@type\": \"beckn:Reference\",\n        \"beckn:orderId\": \"order-123456\"\n      },\n      \"beckn:payment\": {\n        \"@context\": \"https://becknprotocol.io/schemas/core/v2/Payment/schema-context.jsonld\",\n        \"@type\": \"beckn:Payment\",\n        \"beckn:id\": \"payment-001\",\n        \"beckn:txnRef\": \"TXN-123456789\",\n        \"beckn:amount\": {\n          \"currency\": \"INR\",\n          \"value\": 100.0\n        },\n        \"beckn:paymentType\": \"PREPAID\",\n        \"beckn:paymentMethod\": \"UPI\",\n        \"beckn:status\": \"PAID\"\n      },\n      \"beckn:transactionDate\": \"{{timestamp}}\",\n      \"beckn:completionDate\": \"2025-01-27T11:30:00Z\"\n    }\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{meta_service_url}}/transaction_ledger",
+					"host": [
+						"{{meta_service_url}}"
+					],
+					"path": [
+						"transaction_ledger"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		}
+	]
+}

@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "onix-kafka.fullname" . }}-{{ .Values.component }}-config
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: {{ .Values.component }}
+data:
+  adapter.yaml: |
+{{- $fullname := include "onix-kafka.fullname" . }}
+{{- /* Construct Redis hostname - use default pattern matching BAP */}}
+{{- /* Ensure fullname is not duplicated by trimming any potential duplication */}}
+{{- $redisHost := printf "%s-redis-%s" $fullname .Values.component }}
+{{- $redisPort := int .Values.redis.service.port }}
+{{- $redisAddr := printf "%s:%d" $redisHost $redisPort }}
+{{- $kafkaBroker := .Values.kafka.broker }}
+{{- if not $kafkaBroker }}
+{{- if .Values.kafka.enabled }}
+{{- $kafkaPort := int .Values.kafka.service.port }}
+{{- $kafkaBroker = printf "%s-kafka:%d" $fullname $kafkaPort }}
+{{- else }}
+{{- $kafkaBroker = "ev-charging-kafka-bap-onix-kafka-kafka:9092" }}
+{{- end }}
+{{- end }}
+{{- /* Replace Redis addresses - replace both redis-bap and redis-bpp with the correct Redis address for this component */}}
+{{- $adapterConfig := .Values.config.adapter }}
+{{- /* Replace all occurrences of redis-bap:6379 and redis-bpp:6379 with the component-specific Redis address */}}
+{{- /* Replace redis-bpp first to avoid potential issues with replacement order */}}
+{{- $adapterConfig = $adapterConfig | replace "redis-bpp:6379" $redisAddr }}
+{{- $adapterConfig = $adapterConfig | replace "redis-bap:6379" $redisAddr }}
+{{- $adapterConfig = $adapterConfig | replace "kafka:9092" $kafkaBroker }}
+{{- /* Replace mock service names with actual Kubernetes service names */}}
+{{- $adapterConfig = $adapterConfig | replace "http://mock-registry:3030" "http://ev-charging-mock-registry:3030" }}
+{{- $adapterConfig = $adapterConfig | replace "http://mock-cds:8082" "http://ev-charging-mock-cds:8082" }}
+{{- /* Replace hardcoded onix-bap paths with component-specific paths */}}
+{{- if eq .Values.component "bpp" }}
+{{- /* Replace HTTP port with BPP port */}}
+{{- $targetPort := int .Values.service.targetPort }}
+{{- $adapterConfig = $adapterConfig | replace "port: 8001" (printf "port: %d" $targetPort) }}
+{{- $adapterConfig = $adapterConfig | replace "/onix-bap/" "/onix-bpp/" }}
+{{- $adapterConfig = $adapterConfig | replace "bapTxnReciever" "bppTxnReciever" }}
+{{- $adapterConfig = $adapterConfig | replace "bapTxnCaller" "bppTxnCaller" }}
+{{- /* Replace module names and paths for BPP */}}
+{{- $adapterConfig = $adapterConfig | replace "name: bapTxnReceiver" "name: bppTxnReceiver" }}
+{{- $adapterConfig = $adapterConfig | replace "path: /bap/receiver/" "path: /bpp/receiver/" }}
+{{- /* Replace BAP subscriberId and role with BPP values */}}
+{{- $adapterConfig = $adapterConfig | replace "subscriberId: ev-charging.sandbox1.com" "subscriberId: ev-charging.sandbox2.com" }}
+{{- $adapterConfig = $adapterConfig | replace "role: bap" "role: bpp" }}
+{{- /* Replace BAP keyManager configuration with BPP keyManager configuration */}}
+{{- $adapterConfig = $adapterConfig | replace "networkParticipant: ev-charging.sandbox1.com" "networkParticipant: ev-charging.sandbox2.com" }}
+{{- $adapterConfig = $adapterConfig | replace "keyId: bap-key-1" "keyId: bpp-key-1" }}
+{{- $adapterConfig = $adapterConfig | replace "signingPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=" "signingPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=" }}
+{{- $adapterConfig = $adapterConfig | replace "signingPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=" "signingPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=" }}
+{{- $adapterConfig = $adapterConfig | replace "encrPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=" "encrPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=" }}
+{{- $adapterConfig = $adapterConfig | replace "encrPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=" "encrPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=" }}
+{{- /* Replace BAP consumer topics with BPP consumer topics */}}
+{{- $adapterConfig = $adapterConfig | replace "bap.discover,bap.select,bap.init,bap.confirm,bap.status,bap.track,bap.cancel,bap.update,bap.rating,bap.support" "bpp.on_discover,bpp.on_select,bpp.on_init,bpp.on_confirm,bpp.on_status,bpp.on_track,bpp.on_cancel,bpp.on_update,bpp.on_rating,bpp.on_support" }}
+{{- $adapterConfig = $adapterConfig | replace "bap_caller_group" "bpp_caller_group" }}
+{{- /* Replace BAP topic specs with BPP topic specs */}}
+{{- $adapterConfig = $adapterConfig | replace `[{"topic":"bap.discover","numPartitions":1,"replicationFactor":1},{"topic":"bap.select","numPartitions":1,"replicationFactor":1},{"topic":"bap.init","numPartitions":1,"replicationFactor":1},{"topic":"bap.confirm","numPartitions":1,"replicationFactor":1},{"topic":"bap.status","numPartitions":1,"replicationFactor":1},{"topic":"bap.track","numPartitions":1,"replicationFactor":1},{"topic":"bap.cancel","numPartitions":1,"replicationFactor":1},{"topic":"bap.update","numPartitions":1,"replicationFactor":1},{"topic":"bap.rating","numPartitions":1,"replicationFactor":1},{"topic":"bap.support","numPartitions":1,"replicationFactor":1}]` `[{"topic":"bpp.on_discover","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_select","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_init","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_confirm","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_status","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_track","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_cancel","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_update","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_rating","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_support","numPartitions":1,"replicationFactor":1}]` }}
+{{- /* Replace BAP receiver publisher topics with BPP receiver publisher topics */}}
+{{- $adapterConfig = $adapterConfig | replace "topic: bap.on_default" "topic: bpp.default" }}
+{{- $adapterConfig = $adapterConfig | replace `[{"topic":"bap.on_discover","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_select","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_init","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_confirm","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_status","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_track","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_cancel","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_update","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_rating","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_support","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_default","numPartitions":1,"replicationFactor":1}]` `[{"topic":"bpp.discover","numPartitions":1,"replicationFactor":1},{"topic":"bpp.select","numPartitions":1,"replicationFactor":1},{"topic":"bpp.init","numPartitions":1,"replicationFactor":1},{"topic":"bpp.confirm","numPartitions":1,"replicationFactor":1},{"topic":"bpp.status","numPartitions":1,"replicationFactor":1},{"topic":"bpp.track","numPartitions":1,"replicationFactor":1},{"topic":"bpp.cancel","numPartitions":1,"replicationFactor":1},{"topic":"bpp.update","numPartitions":1,"replicationFactor":1},{"topic":"bpp.rating","numPartitions":1,"replicationFactor":1},{"topic":"bpp.support","numPartitions":1,"replicationFactor":1},{"topic":"bpp.default","numPartitions":1,"replicationFactor":1}]` }}
+{{- end }}
+{{ $adapterConfig | indent 4 }}
+  {{- if eq .Values.component "bap" }}
+  {{- /* Replace mock service names in routing configuration with Kubernetes service names */}}
+  {{- $callerRouting := .Values.config.routing.caller | replace "http://mock-cds:8082" "http://ev-charging-mock-cds:8082" | replace "http://mock-registry:3030" "http://ev-charging-mock-registry:3030" }}
+  {{- $receiverRouting := .Values.config.routing.receiver }}
+  bapTxnCaller-routing.yaml: |
+{{ $callerRouting | indent 4 }}
+  bapTxnReciever-routing.yaml: |
+{{ $receiverRouting | indent 4 }}
+  {{- else }}
+  {{- /* Replace mock service names in routing configuration with Kubernetes service names */}}
+  {{- $callerRouting := .Values.config.routing.caller | replace "http://mock-cds:8082" "http://ev-charging-mock-cds:8082" | replace "http://mock-registry:3030" "http://ev-charging-mock-registry:3030" }}
+  {{- $receiverRouting := .Values.config.routing.receiver }}
+  bppTxnCaller-routing.yaml: |
+{{ $callerRouting | indent 4 }}
+  bppTxnReciever-routing.yaml: |
+{{ $receiverRouting | indent 4 }}
+  {{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "onix-kafka.fullname" . }}-schemas
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+data:
+  # Note: In production, you may want to use a PersistentVolume or initContainer
+  # to populate schemas from your schemas directory
+  # For now, this is a placeholder - you'll need to populate it with actual schema files
+  .gitkeep: ""
+

@@ -1,0 +1,140 @@
+appName: "bpp-ev-charging"
+
+log:
+  level: debug
+  destinations:
+    - type: stdout
+  contextKeys:
+    - transaction_id
+    - message_id
+    - subscriber_id
+    - module_id
+
+http:
+  port: 8002
+  timeout:
+    read: 30
+    write: 30
+    idle: 30
+
+pluginManager:
+  root: /app/plugins
+
+modules:
+  # BPP Receiver - Receives search from CDS and other requests from ONIX
+  # Phase 1: Receives search from CDS
+  # Phase 2+: Receives other requests (select, init, confirm, etc.) from ONIX
+  - name: bppTxnReceiver
+    path: /bpp/receiver/
+    handler:
+      type: std
+      role: bpp
+      httpClientConfig:
+        maxIdleConns: 1000
+        maxIdleConnsPerHost: 200
+        idleConnTimeout: 300s
+        responseHeaderTimeout: 5s
+      plugins:
+        registry:
+          id: registry
+          config:
+            url: http://mock-registry:3030
+            retry_max: 3
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+        keyManager:
+          id: simplekeymanager
+          config:
+            networkParticipant: ev-charging.sandbox2.com
+            keyId: bpp-key-1
+            signingPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+            signingPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+            encrPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+            encrPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+        cache:
+          id: cache
+          config:
+            addr: redis-onix-bpp:6379
+        schemaValidator:
+          id: schemavalidator
+          config:
+            schemaDir: /app/schemas
+        signValidator:
+          id: signvalidator
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/onix-bpp/bpp_receiver_routing.yaml
+        middleware:
+          - id: reqpreprocessor
+            config:
+              uuidKeys: transaction_id,message_id
+              role: bpp
+      steps:
+        - validateSign
+        - addRoute
+        - validateSchema
+
+  # BPP Caller - Sends responses (on_search, on_select, on_init, etc.) to CDS/ONIX
+  # Phase 1: Sends on_search response to CDS
+  # Phase 2+: Sends other responses to ONIX
+  - name: bppTxnCaller
+    path: /bpp/caller/
+    handler:
+      type: std
+      role: bpp
+      httpClientConfig:
+        maxIdleConns: 1000
+        maxIdleConnsPerHost: 200
+        idleConnTimeout: 300s
+        responseHeaderTimeout: 5s
+      plugins:
+        registry:
+          id: registry
+          config:
+            url: http://mock-registry:3030
+            retry_max: 3
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+        keyManager:
+          id: simplekeymanager
+          config:
+            networkParticipant: ev-charging.sandbox2.com
+            keyId: bpp-key-1
+            signingPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+            signingPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+            encrPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+            encrPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+        cache:
+          id: cache
+          config:
+            addr: redis-onix-bpp:6379
+        schemaValidator:
+          id: schemavalidator
+          config:
+            schemaDir: /app/schemas
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/onix-bpp/bpp_caller_routing.yaml
+        signer:
+          id: signer
+        middleware:
+          - id: reqpreprocessor
+            config:
+              uuidKeys: transaction_id,message_id
+              role: bpp
+      steps:
+        - addRoute
+        - sign
+
+plugins:
+  - registry
+  - simplekeymanager
+  - cache
+  - schemavalidator
+  - signvalidator
+  - router
+  - signer
+  - reqpreprocessor
+

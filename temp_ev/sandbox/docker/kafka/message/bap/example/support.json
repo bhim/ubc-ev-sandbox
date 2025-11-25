@@ -1,0 +1,31 @@
+{
+  "context": {
+    "version": "2.0.0",
+    "action": "support",
+    "domain": "beckn.one:deg:ev-charging",
+    "location": {
+      "country": {
+        "code": "IND"
+      },
+      "city": {
+        "code": "std:080"
+      }
+    },
+    "bap_id": "ev-charging.sandbox1.com",
+    "bap_uri": "http://mock-bap-kafka:9003",
+    "bpp_id": "ev-charging.sandbox2.com",
+    "bpp_uri": "http://onix-bpp-plugin-kafka:8002/bpp/receiver",
+    "transaction_id": "550e8400-e29b-41d4-a716-446655440000",
+    "message_id": "dd0e8400-e29b-41d4-a716-446655440008",
+    "timestamp": "2025-01-27T10:00:00Z",
+    "ttl": "PT30S",
+    "schema_context": [
+      "https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld"
+    ]
+  },
+  "message": {
+    "ref_id": "order-bpp-789012",
+    "ref_type": "order"
+  }
+}
+

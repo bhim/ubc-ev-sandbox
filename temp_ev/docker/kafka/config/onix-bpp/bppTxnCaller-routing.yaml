@@ -1,0 +1,29 @@
+# ONIX BPP Caller Routing Configuration (Kafka)
+
+routingRules:
+  # Phase 1: on_discover response routed to CDS
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-cds:8082/csd
+      excludeAction: false
+    endpoints:
+      - on_discover
+
+  # Phase 2+: Other callbacks to BAP-ONIX
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: bap
+    target: {}
+    endpoints:
+      - on_select
+      - on_init
+      - on_confirm
+      - on_status
+      - on_track
+      - on_cancel
+      - on_update
+      - on_rating
+      - on_support
+

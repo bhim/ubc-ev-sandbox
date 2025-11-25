@@ -1,0 +1,163 @@
+{{- if .Values.kafka.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "onix-kafka.fullname" . }}-kafka
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "onix-kafka.selectorLabels" . | nindent 6 }}
+      component: kafka
+  template:
+    metadata:
+      labels:
+        {{- include "onix-kafka.selectorLabels" . | nindent 8 }}
+        component: kafka
+    spec:
+      initContainers:
+      - name: format-kafka-metadata
+        image: "{{ .Values.kafka.image.repository }}:{{ .Values.kafka.image.tag }}"
+        command:
+        - sh
+        - -c
+        - |
+          # Format KRaft metadata log directory if it doesn't exist
+          if [ ! -f /var/lib/kafka/data/meta.properties ]; then
+            echo "Formatting Kafka KRaft metadata log directory..."
+            # Create a minimal config file for kafka-storage format
+            cat > /tmp/kafka-storage.properties <<EOF
+          process.roles={{ .Values.kafka.processRoles }}
+          node.id={{ .Values.kraft.nodeId }}
+          controller.quorum.voters={{ .Values.kraft.nodeId }}@localhost:{{ .Values.kafka.service.controllerPort }}
+          log.dirs=/var/lib/kafka/data
+          EOF
+            kafka-storage format -t {{ .Values.kraft.clusterId }} -c /tmp/kafka-storage.properties --ignore-formatted || true
+            echo "Kafka metadata log directory formatted"
+          else
+            echo "Kafka metadata log directory already formatted, skipping..."
+          fi
+        volumeMounts:
+        - name: kafka-data
+          mountPath: /var/lib/kafka/data
+      containers:
+      - name: kafka
+        image: "{{ .Values.kafka.image.repository }}:{{ .Values.kafka.image.tag }}"
+        ports:
+        - name: kafka
+          containerPort: {{ .Values.kafka.service.targetPort }}
+          protocol: TCP
+        - name: controller
+          containerPort: {{ .Values.kafka.service.controllerPort }}
+          protocol: TCP
+        env:
+        - name: KAFKA_NODE_ID
+          value: {{ .Values.kraft.nodeId | quote }}
+        - name: KAFKA_PROCESS_ROLES
+          value: {{ .Values.kafka.processRoles | quote }}
+        - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+          value: {{ .Values.kraft.nodeId }}@localhost:{{ .Values.kafka.service.controllerPort }}
+        - name: KAFKA_LISTENERS
+          value: PLAINTEXT://0.0.0.0:{{ .Values.kafka.service.targetPort }},CONTROLLER://0.0.0.0:{{ .Values.kafka.service.controllerPort }}
+        - name: KAFKA_ADVERTISED_LISTENERS
+          value: PLAINTEXT://{{ include "onix-kafka.fullname" . }}-kafka:{{ .Values.kafka.service.targetPort }}
+        - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+          value: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+        - name: KAFKA_INTER_BROKER_LISTENER_NAME
+          value: PLAINTEXT
+        - name: KAFKA_CONTROLLER_LISTENER_NAMES
+          value: CONTROLLER
+        - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+          value: "1"
+        - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+          value: "1"
+        - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+          value: "1"
+        - name: CLUSTER_ID
+          value: {{ .Values.kraft.clusterId }}
+        - name: KAFKA_LOG_DIRS
+          value: /var/lib/kafka/data
+        - name: KAFKA_METADATA_LOG_DIR
+          value: /var/lib/kafka/data
+        {{- if .Values.kafka.resources }}
+        resources:
+          {{- toYaml .Values.kafka.resources | nindent 10 }}
+        {{- end }}
+        livenessProbe:
+          exec:
+            command:
+            - kafka-broker-api-versions
+            - --bootstrap-server
+            - localhost:{{ .Values.kafka.service.targetPort }}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - kafka-broker-api-versions
+            - --bootstrap-server
+            - localhost:{{ .Values.kafka.service.targetPort }}
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: kafka-data
+          mountPath: /var/lib/kafka/data
+      volumes:
+      {{- if .Values.kafka.persistence.enabled }}
+      - name: kafka-data
+        persistentVolumeClaim:
+          claimName: {{ include "onix-kafka.fullname" . }}-kafka-pvc
+      {{- else }}
+      - name: kafka-data
+        emptyDir: {}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "onix-kafka.fullname" . }}-kafka
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: kafka
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.kafka.service.port }}
+      targetPort: kafka
+      protocol: TCP
+      name: kafka
+    - port: {{ .Values.kafka.service.controllerPort }}
+      targetPort: controller
+      protocol: TCP
+      name: controller
+  selector:
+    {{- include "onix-kafka.selectorLabels" . | nindent 4 }}
+    component: kafka
+---
+{{- if .Values.kafka.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "onix-kafka.fullname" . }}-kafka-pvc
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: kafka
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.kafka.persistence.size }}
+  {{- if .Values.kafka.persistence.storageClass }}
+  storageClassName: {{ .Values.kafka.persistence.storageClass }}
+  {{- end }}
+{{- end }}
+{{- end }}
+

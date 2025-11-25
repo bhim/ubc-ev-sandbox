@@ -1,0 +1,95 @@
+# ONIX BAP Receiver Routing Configuration
+# Microservice Architecture: Each callback routes to different mock BAP services
+
+routingRules:
+  # Phase 1: on_discover callback routes to mock-bap-discover
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bap-discover:9001
+      excludeAction: false
+    endpoints:
+      - on_discover
+      
+  # Phase 2+: Each callback routes to different mock BAP services
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bap-select:9001
+      excludeAction: false
+    endpoints:
+      - on_select
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bap-init:9001
+      excludeAction: false
+    endpoints:
+      - on_init
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bap-confirm:9001
+      excludeAction: false
+    endpoints:
+      - on_confirm
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bap-status:9001
+      excludeAction: false
+    endpoints:
+      - on_status
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bap-track:9001
+      excludeAction: false
+    endpoints:
+      - on_track
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bap-cancel:9001
+      excludeAction: false
+    endpoints:
+      - on_cancel
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bap-update:9001
+      excludeAction: false
+    endpoints:
+      - on_update
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bap-rating:9001
+      excludeAction: false
+    endpoints:
+      - on_rating
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bap-support:9001
+      excludeAction: false
+    endpoints:
+      - on_support

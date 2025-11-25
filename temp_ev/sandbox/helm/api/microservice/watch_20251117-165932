@@ -1,0 +1,27 @@
+Every 2.0s: kubectl get pods -n ev-charging-sandbox                                                                                                  Manendras-MacBook-Pro.local: 16:59:30
+                                                                                                                                                                             in 0.046s (0)
+NAME                                                          READY   STATUS             RESTARTS      AGE                                                                                
+ev-charging-kafka-bap-onix-kafka-bap-6c78f9f4b6-g5d7t         1/1     Running            0             2m2s                                                                               
+ev-charging-kafka-bap-onix-kafka-kafka-7d8c76c888-t8t5w       1/1     Running            0             2m2s                                                                               
+ev-charging-kafka-bap-onix-kafka-kafka-ui-8477ddc544-t66n4    1/1     Running            0             2m2s                                                                               
+ev-charging-kafka-bap-onix-kafka-redis-bap-68c9f995f5-vhpwz   1/1     Running            0             2m2s                                                                               
+ev-charging-kafka-bpp-onix-kafka-bpp-5b96b5cc66-6flzp         0/1     CrashLoopBackOff   5 (12s ago)   3m32s                                                                              
+ev-charging-kafka-bpp-onix-kafka-bpp-7f457f45bb-bcsnx         0/1     Running            1 (40s ago)   2m1s                                                                               
+ev-charging-kafka-bpp-onix-kafka-redis-bpp-f9bdb57f7-zqbt4    1/1     Running            0             2m2s                                                                               
+ev-charging-mock-bap-kafka-766969dcfb-rmvdq                   1/1     Running            0             2m2s                                                                               
+ev-charging-mock-bpp-kafka-758fc875b7-8llrz                   1/1     Running            0             2m1s                                                                               
+ev-charging-mock-cds-7947f9857b-gxj7r                         1/1     Running            0             2m1s                                                                               
+ev-charging-mock-registry-56db48cd76-rbjfg                    1/1     Running            0             2m1s                                                                               
+                                                                                                                                                                                          
+                                                                                                                                                                                          
+                                                                                                                                                                                          
+                                                                                                                                                                                          
+                                                                                                                                                                                          
+                                                                                                                                                                                          
+                                                                                                                                                                                          
+                                                                                                                                                                                          
+                                                                                                                                                                                          
+                                                                                                                                                                                          
+                                                                                                                                                                                          
+                                                                                                                                                                                          
+                                                                                                                                                                                          

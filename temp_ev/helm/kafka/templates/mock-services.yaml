@@ -1,0 +1,380 @@
+{{- if .Values.mockServices.enabled }}
+{{- /* Mock Registry Service - deployed only with BAP release */}}
+{{- if and .Values.mockServices.registry.enabled (eq .Values.component "bap") }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ev-charging-mock-registry
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: mock-registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "onix-kafka.selectorLabels" . | nindent 6 }}
+      component: mock-registry
+  template:
+    metadata:
+      labels:
+        {{- include "onix-kafka.selectorLabels" . | nindent 8 }}
+        component: mock-registry
+    spec:
+      containers:
+      - name: mock-registry
+        image: "{{ .Values.mockServices.registry.image.repository }}:{{ .Values.mockServices.registry.image.tag }}"
+        ports:
+        - name: http
+          containerPort: 3030
+          protocol: TCP
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: config
+        configMap:
+          name: ev-charging-mock-registry-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ev-charging-mock-registry
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: mock-registry
+spec:
+  type: {{ .Values.mockServices.registry.service.type }}
+  ports:
+    - port: {{ .Values.mockServices.registry.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "onix-kafka.selectorLabels" . | nindent 4 }}
+    component: mock-registry
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ev-charging-mock-registry-config
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: mock-registry
+data:
+  config.yaml: |
+{{ .Values.mockServices.registry.config | indent 4 }}
+{{- end }}
+
+{{- /* Mock CDS Service - deployed only with BAP release */}}
+{{- if and .Values.mockServices.cds.enabled (eq .Values.component "bap") }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ev-charging-mock-cds
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: mock-cds
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "onix-kafka.selectorLabels" . | nindent 6 }}
+      component: mock-cds
+  template:
+    metadata:
+      labels:
+        {{- include "onix-kafka.selectorLabels" . | nindent 8 }}
+        component: mock-cds
+    spec:
+      containers:
+      - name: mock-cds
+        image: "{{ .Values.mockServices.cds.image.repository }}:{{ .Values.mockServices.cds.image.tag }}"
+        ports:
+        - name: http
+          containerPort: 8082
+          protocol: TCP
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: config
+        configMap:
+          name: ev-charging-mock-cds-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ev-charging-mock-cds
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: mock-cds
+spec:
+  type: {{ .Values.mockServices.cds.service.type }}
+  ports:
+    - port: {{ .Values.mockServices.cds.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "onix-kafka.selectorLabels" . | nindent 4 }}
+    component: mock-cds
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ev-charging-mock-cds-config
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: mock-cds
+data:
+  config.yaml: |
+{{ .Values.mockServices.cds.config | indent 4 }}
+{{- end }}
+
+{{- /* Mock BAP Kafka Service - deployed only with BAP release */}}
+{{- if and .Values.mockServices.bapKafka.enabled (eq .Values.component "bap") }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ev-charging-mock-bap-kafka
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: mock-bap-kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "onix-kafka.selectorLabels" . | nindent 6 }}
+      component: mock-bap-kafka
+  template:
+    metadata:
+      labels:
+        {{- include "onix-kafka.selectorLabels" . | nindent 8 }}
+        component: mock-bap-kafka
+    spec:
+      containers:
+      - name: mock-bap-kafka
+        image: "{{ .Values.mockServices.bapKafka.image.repository }}:{{ .Values.mockServices.bapKafka.image.tag }}"
+        ports:
+        - name: http
+          containerPort: 9003
+          protocol: TCP
+        env:
+        - name: CONFIG_FILE
+          value: /app/config/config.yaml
+        {{- $kafkaBroker := .Values.kafka.broker }}
+        {{- if not $kafkaBroker }}
+        {{- if .Values.kafka.enabled }}
+        {{- $kafkaBroker = printf "%s-kafka:%d" (include "onix-kafka.fullname" .) .Values.kafka.service.port }}
+        {{- else }}
+        {{- $kafkaBroker = "ev-charging-kafka-bap-onix-kafka-kafka:9092" }}
+        {{- end }}
+        {{- end }}
+        - name: KAFKA_BROKERS
+          value: {{ $kafkaBroker }}
+        {{- if .Values.mockServices.bapKafka.defaults }}
+        - name: DEFAULTS_VERSION
+          value: {{ .Values.mockServices.bapKafka.defaults.version | quote }}
+        - name: DEFAULTS_COUNTRY_CODE
+          value: {{ .Values.mockServices.bapKafka.defaults.country_code | quote }}
+        - name: DEFAULTS_CITY_CODE
+          value: {{ .Values.mockServices.bapKafka.defaults.city_code | quote }}
+        - name: DEFAULTS_SUBSCRIBER_ID
+          value: {{ .Values.mockServices.bapKafka.defaults.subscriber_id | quote }}
+        {{- end }}
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: config
+        configMap:
+          name: ev-charging-mock-bap-kafka-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ev-charging-mock-bap-kafka
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: mock-bap-kafka
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9003
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "onix-kafka.selectorLabels" . | nindent 4 }}
+    component: mock-bap-kafka
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ev-charging-mock-bap-kafka-config
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: mock-bap-kafka
+data:
+  config.yaml: |
+{{ .Values.mockServices.bapKafka.config | indent 4 }}
+{{- end }}
+
+{{- /* Mock BPP Kafka Service - deployed only with BPP release */}}
+{{- if and .Values.mockServices.bppKafka.enabled (eq .Values.component "bpp") }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ev-charging-mock-bpp-kafka
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: mock-bpp-kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "onix-kafka.selectorLabels" . | nindent 6 }}
+      component: mock-bpp-kafka
+  template:
+    metadata:
+      labels:
+        {{- include "onix-kafka.selectorLabels" . | nindent 8 }}
+        component: mock-bpp-kafka
+    spec:
+      containers:
+      - name: mock-bpp-kafka
+        image: "{{ .Values.mockServices.bppKafka.image.repository }}:{{ .Values.mockServices.bppKafka.image.tag }}"
+        ports:
+        - name: http
+          containerPort: 9004
+          protocol: TCP
+        env:
+        - name: CONFIG_FILE
+          value: /app/config/config.yaml
+        {{- $kafkaBroker := .Values.kafka.broker }}
+        {{- if not $kafkaBroker }}
+        {{- if .Values.kafka.enabled }}
+        {{- $kafkaBroker = printf "%s-kafka:%d" (include "onix-kafka.fullname" .) .Values.kafka.service.port }}
+        {{- else }}
+        {{- $kafkaBroker = "ev-charging-kafka-bap-onix-kafka-kafka:9092" }}
+        {{- end }}
+        {{- end }}
+        - name: KAFKA_BROKERS
+          value: {{ $kafkaBroker }}
+        {{- if .Values.mockServices.bppKafka.defaults }}
+        - name: DEFAULTS_VERSION
+          value: {{ .Values.mockServices.bppKafka.defaults.version | quote }}
+        - name: DEFAULTS_COUNTRY_CODE
+          value: {{ .Values.mockServices.bppKafka.defaults.country_code | quote }}
+        - name: DEFAULTS_CITY_CODE
+          value: {{ .Values.mockServices.bppKafka.defaults.city_code | quote }}
+        - name: DEFAULTS_SUBSCRIBER_ID
+          value: {{ .Values.mockServices.bppKafka.defaults.subscriber_id | quote }}
+        {{- end }}
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: config
+        configMap:
+          name: ev-charging-mock-bpp-kafka-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ev-charging-mock-bpp-kafka
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: mock-bpp-kafka
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9004
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "onix-kafka.selectorLabels" . | nindent 4 }}
+    component: mock-bpp-kafka
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ev-charging-mock-bpp-kafka-config
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: mock-bpp-kafka
+data:
+  config.yaml: |
+{{ .Values.mockServices.bppKafka.config | indent 4 }}
+{{- end }}
+{{- end }}
+

@@ -1,0 +1,56 @@
+{
+	"info": {
+		"_postman_id": "65d469fe-b469-40f7-b7f9-0479fc855cef",
+		"name": "BPP-DEG:EV-Charging-On-Support",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30848972"
+	},
+	"item": [
+		{
+			"name": "on_support",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"context\": {\n    \"version\": \"{{version}}\",\n    \"action\": \"on_support\",\n    \"domain\": \"{{domain}}\",\n    \"location\": {\n      \"country\": {\n        \"code\": \"IND\"\n      },\n      \"city\": {\n        \"code\": \"std:080\"\n      }\n    },\n    \"bap_id\": \"{{bap_id}}\",\n    \"bap_uri\": \"{{bap_uri}}\",\n    \"bpp_id\": \"{{bpp_id}}\",\n    \"bpp_uri\": \"{{bpp_uri}}\",\n    \"transaction_id\": \"{{transaction_id}}\",\n    \"message_id\": \"{{$guid}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"ttl\": \"PT30S\",\n    \"schema_context\": [\n      \"https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld\"\n    ]\n  },\n  \"message\": {\n    \"phone\": \"+91-80-12345678\",\n    \"email\": \"support@ecopower.com\",\n    \"uri\": \"https://ecopower.com/support\",\n    \"support\": [\n      {\n        \"@context\": \"https://becknprotocol.io/schemas/core/v2/SupportInfo/schema-context.jsonld\",\n        \"@type\": \"beckn:SupportInfo\",\n        \"type\": \"order\",\n        \"ref_id\": \"order-bpp-789012\",\n        \"channels\": [\n          {\n            \"type\": \"phone\",\n            \"value\": \"+91-80-12345678\"\n          },\n          {\n            \"type\": \"email\",\n            \"value\": \"support@ecopower.com\"\n          },\n          {\n            \"type\": \"web\",\n            \"value\": \"https://ecopower.com/support/ticket\"\n          },\n          {\n            \"type\": \"chat\",\n            \"value\": \"https://ecopower.com/chat\"\n          }\n        ],\n        \"url\": \"https://ecopower.com/support/order/order-bpp-789012\"\n      }\n    ]\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{on_support_url}}",
+					"host": [
+						"{{on_support_url}}"
+					],
+					"path": []
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		}
+	]
+}
+

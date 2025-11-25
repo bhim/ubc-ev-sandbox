@@ -1,0 +1,185 @@
+# Sandbox values for EV Charging Microservice Architecture
+# This file contains sandbox-specific overrides for the helm/api/microservice chart
+# Use with: helm install <release-name> ../../../../helm/api/microservice -f values-sandbox.yaml
+
+# Name override - replaces the chart name "onix-api-microservice" in resource names
+# Example: nameOverride: "onix-api-on_discover" will create names like "ev-charging-bap-onix-api-on_discover-bap"
+# Leave empty to use default "onix-api-microservice" naming
+# nameOverride: "onix-api-on_discover"
+
+# Service configuration - Expose BAP and BPP externally, keep others internal
+service:
+  type: LoadBalancer  # Expose BAP/BPP ONIX plugins externally (LoadBalancer or NodePort)
+  # For NodePort instead: type: NodePort
+  # For internal only: type: ClusterIP
+
+# Mock services configuration
+mockServices:
+  enabled: true
+  
+  # Mock Registry Service
+  registry:
+    enabled: true
+    image:
+      repository: manendrapalsingh/mock-registry
+      tag: latest
+    service:
+      type: ClusterIP
+      port: 3030
+    config: |
+      server:
+        port: ":3030"
+      
+      subscribers:
+        - subscriber_id: "ev-charging.sandbox1.com"
+          subscriber_uri: "http://ev-charging-bap-onix-api-microservice-bap-service:8001/bap/receiver"
+          type: "BAP"
+          signing_public_key: "MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU="
+          encr_public_key: "MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU="
+          key_id: "bap-key-1"
+        
+        - subscriber_id: "ev-charging.sandbox2.com"
+          subscriber_uri: "http://ev-charging-bpp-onix-api-microservice-bpp-service:8002/bpp/receiver"
+          type: "BPP"
+          signing_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+          encr_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+          key_id: "bpp-key-1"
+        
+        - subscriber_id: "mock-cds"
+          subscriber_uri: "http://ev-charging-mock-cds:8082"
+          type: "CDS"
+          signing_public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+          encr_public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+          key_id: "cds-key-1"
+      
+      defaults:
+        valid_from: "2025-01-01T00:00:00Z"
+        valid_until: "2099-12-31T23:59:59Z"
+  
+  # Mock CDS Service
+  cds:
+    enabled: true
+    image:
+      repository: manendrapalsingh/mock-cds
+      tag: latest
+    service:
+      type: ClusterIP
+      port: 8082
+    config: |
+      server:
+        port: ":8082"
+      
+      registry:
+        host: "ev-charging-mock-registry"
+        port: "3030"
+        lookup_path: "/lookup"
+      
+      cds:
+        signing:
+          private_key: "o33NCO6dqo+MopQEA7cmRFm4544XkHfbAktjvaCCi7U="
+          public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+          subscriber_id: "mock-cds"
+          key_id: "cds-key-1"
+      
+      endpoints:
+        bpps:
+          - host: "ev-charging-bpp-onix-api-microservice-bpp-service"
+            port: "8002"
+            discover_path: "/bpp/receiver/discover"
+            subscriber_id: "ev-charging.sandbox2.com"
+      
+      timing:
+        broadcast_discover_delay_ms: 500
+        aggregate_response_delay_ms: 1000
+        signature_expiry_minutes: 5
+      
+      defaults:
+        version: "2.0.0"
+        domain: "beckn.one:deg:ev-charging"
+        country_code: "IND"
+        city_code: "std:080"
+        default_gps: "12.9352,77.6245"
+  
+  # Mock BAP Services (Microservice: one per endpoint)
+  bap:
+    enabled: true
+    image:
+      repository: manendrapalsingh/mock-bap
+      tag: latest
+    config: |
+      server:
+        port: ":9001"
+      
+      defaults:
+        version: "2.0.0"
+        domain: "beckn.one:deg:ev-charging"
+        country_code: "IND"
+        city_code: "std:080"
+    
+    # Microservice architecture: Each endpoint has its own service
+    services:
+      - name: discover
+        port: 9001
+      - name: select
+        port: 9002
+      - name: init
+        port: 9003
+      - name: confirm
+        port: 9004
+      - name: status
+        port: 9005
+      - name: track
+        port: 9006
+      - name: cancel
+        port: 9007
+      - name: update
+        port: 9008
+      - name: rating
+        port: 9009
+      - name: support
+        port: 9010
+  
+  # Mock BPP Services (Microservice: one per endpoint)
+  bpp:
+    enabled: true
+    image:
+      repository: manendrapalsingh/mock-bpp
+      tag: latest
+    config: |
+      server:
+        port: ":9002"
+      
+      defaults:
+        version: "2.0.0"
+        domain: "beckn.one:deg:ev-charging"
+        country_code: "IND"
+        city_code: "std:080"
+    
+    # Microservice architecture: Each endpoint has its own service
+    services:
+      - name: discover
+        port: 9011
+      - name: select
+        port: 9012
+      - name: init
+        port: 9013
+      - name: confirm
+        port: 9014
+      - name: status
+        port: 9015
+      - name: track
+        port: 9016
+      - name: cancel
+        port: 9017
+      - name: update
+        port: 9018
+      - name: rating
+        port: 9019
+      - name: support
+        port: 9020
+
+# Note: Adapter and routing configs are defined in component-specific values files:
+# - values-bap.yaml for BAP deployments
+# - values-bpp.yaml for BPP deployments
+# This file only contains sandbox-specific mock services configuration.
+

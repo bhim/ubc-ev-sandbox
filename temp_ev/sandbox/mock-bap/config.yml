@@ -1,0 +1,8 @@
+server:
+  port: ":9001"
+
+defaults:
+  version: "1.0.0"
+  country_code: "IND"
+  city_code: "std:080"
+

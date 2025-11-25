@@ -1,0 +1,58 @@
+{
+  "context": {
+    "version": "2.0.0",
+    "action": "on_support",
+    "domain": "beckn.one:deg:ev-charging",
+    "location": {
+      "country": {
+        "code": "IND"
+      },
+      "city": {
+        "code": "std:080"
+      }
+    },
+    "bap_id": "ev-charging.sandbox1.com",
+    "bap_uri": "http://ev-charging-kafka-bap-onix-kafka-bap-service:8001/bap/receiver",
+    "bpp_id": "ev-charging.sandbox2.com",
+    "bpp_uri": "http://ev-charging-kafka-bpp-onix-kafka-bpp-service:8002/bpp/receiver",
+    "transaction_id": "550e8400-e29b-41d4-a716-446655440000",
+    "message_id": "990e8400-e29b-41d4-a716-446655440017",
+    "timestamp": "2025-01-27T10:00:00Z",
+    "ttl": "PT30S",
+    "schema_context": [
+      "https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld"
+    ]
+  },
+  "message": {
+    "phone": "+91-80-12345678",
+    "email": "support@ecopower.com",
+    "uri": "https://ecopower.com/support",
+    "support": [
+      {
+        "@context": "https://becknprotocol.io/schemas/core/v2/SupportInfo/schema-context.jsonld",
+        "@type": "beckn:SupportInfo",
+        "type": "order",
+        "ref_id": "order-bpp-789012",
+        "channels": [
+          {
+            "type": "phone",
+            "value": "+91-80-12345678"
+          },
+          {
+            "type": "email",
+            "value": "support@ecopower.com"
+          },
+          {
+            "type": "web",
+            "value": "https://ecopower.com/support/ticket"
+          },
+          {
+            "type": "chat",
+            "value": "https://ecopower.com/chat"
+          }
+        ],
+        "url": "https://ecopower.com/support/order/order-bpp-789012"
+      }
+    ]
+  }
+}

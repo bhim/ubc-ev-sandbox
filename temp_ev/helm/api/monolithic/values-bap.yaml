@@ -1,0 +1,212 @@
+# BAP-specific values for onix-api-monolithic
+component: bap
+
+image:
+  repository: manendrapalsingh/onix-bap-plugin
+  tag: latest
+
+service:
+  port: 8001
+  targetPort: 8001
+
+redis:
+  enabled: true
+  service:
+    port: 6379
+
+config:
+  adapter: |
+    appName: "onix-ev-charging"
+    
+    log:
+      level: debug
+      destinations:
+        - type: stdout
+      contextKeys:
+        - transaction_id
+        - message_id
+        - subscriber_id
+        - module_id
+    
+    http:
+      port: 8001
+      timeout:
+        read: 30
+        write: 30
+        idle: 30
+    
+    pluginManager:
+      root: /app/plugins
+    
+    modules:
+      - name: bapTxnReceiver
+        path: /bap/receiver/
+        handler:
+          type: std
+          role: bap
+          httpClientConfig:
+            maxIdleConns: 1000
+            maxIdleConnsPerHost: 200
+            idleConnTimeout: 300s
+            responseHeaderTimeout: 5s
+          plugins:
+            registry:
+              id: registry
+              config:
+                url: http://ev-charging-mock-registry:3030
+                retry_max: 3
+                retry_wait_min: 100ms
+                retry_wait_max: 500ms
+            keyManager:
+              id: simplekeymanager
+              config:
+                networkParticipant: ev-charging.sandbox1.com
+                keyId: bap-key-1
+                signingPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
+                signingPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+                encrPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
+                encrPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+            cache:
+              id: cache
+              config:
+                addr: ev-charging-redis-onix-bap:6379
+            schemaValidator:
+              id: schemavalidator
+              config:
+                schemaDir: /app/schemas
+            signValidator:
+              id: signvalidator
+            router:
+              id: router
+              config:
+                routingConfig: /app/config/onix-bap/bap_receiver_routing.yaml
+            middleware:
+              - id: reqpreprocessor
+                config:
+                  uuidKeys: transaction_id,message_id
+                  role: bap
+          steps:
+            - validateSign
+            - addRoute
+            - validateSchema
+    
+      - name: bapTxnCaller
+        path: /bap/caller/
+        handler:
+          type: std
+          role: bap
+          httpClientConfig:
+            maxIdleConns: 1000
+            maxIdleConnsPerHost: 200
+            idleConnTimeout: 300s
+            responseHeaderTimeout: 5s
+          plugins:
+            registry:
+              id: registry
+              config:
+                url: http://ev-charging-mock-registry:3030
+                retry_max: 3
+                retry_wait_min: 100ms
+                retry_wait_max: 500ms
+            keyManager:
+              id: simplekeymanager
+              config:
+                networkParticipant: ev-charging.sandbox1.com
+                keyId: bap-key-1
+                signingPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
+                signingPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+                encrPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
+                encrPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+            cache:
+              id: cache
+              config:
+                addr: ev-charging-redis-onix-bap:6379
+            schemaValidator:
+              id: schemavalidator
+              config:
+                schemaDir: /app/schemas
+            router:
+              id: router
+              config:
+                routingConfig: /app/config/onix-bap/bap_caller_routing.yaml
+            signer:
+              id: signer
+            middleware:
+              - id: reqpreprocessor
+                config:
+                  uuidKeys: transaction_id,message_id
+                  role: bap
+          steps:
+            - validateSchema
+            - addRoute
+            - sign
+    
+    plugins:
+      - registry
+      - simplekeymanager
+      - cache
+      - schemavalidator
+      - signvalidator
+      - router
+      - signer
+      - reqpreprocessor
+
+  routing:
+    caller: |
+      # ONIX BAP Caller Routing Configuration
+      
+      routingRules:
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://ev-charging-mock-cds:8082/csd
+            excludeAction: false
+          endpoints:
+            - discover
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: bpp
+          target: {}
+          endpoints:
+            - select
+            - init
+            - confirm
+            - status
+            - track
+            - cancel
+            - update
+            - rating
+            - support
+    
+    receiver: |
+      # ONIX BAP Receiver Routing Configuration
+      
+      routingRules:
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://ev-charging-mock-bap:9001
+            excludeAction: false
+          endpoints:
+            - on_discover
+            
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://ev-charging-mock-bap:9001
+            excludeAction: false
+          endpoints:
+            - on_select
+            - on_init
+            - on_confirm
+            - on_status
+            - on_track
+            - on_cancel
+            - on_update
+            - on_rating
+            - on_support
+

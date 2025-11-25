@@ -1,0 +1,40 @@
+{
+  "context": {
+    "version": "2.0.0",
+    "action": "discover",
+    "domain": "beckn.one:deg:ev-charging",
+    "location": {
+      "country": {
+        "code": "IND"
+      },
+      "city": {
+        "code": "std:080"
+      }
+    },
+    "bap_id": "ev-charging.sandbox1.com",
+    "bap_uri": "http://mock-bap-rabbit-mq:9003",
+    "transaction_id": "550e8400-e29b-41d4-a716-446655440000",
+    "message_id": "660e8400-e29b-41d4-a716-446655440014",
+    "timestamp": "2025-01-27T10:00:00Z",
+    "ttl": "PT30S",
+    "schema_context": [
+      "https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld"
+    ]
+  },
+  "message": {
+    "spatial": [
+      {
+        "op": "s_dwithin",
+        "targets": "$['beckn:availableAt'][*]['geo']",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [77.59, 12.94]
+        }
+      }
+    ],
+    "filters": {
+      "type": "jsonpath",
+      "expression": "$[?(@.beckn:itemAttributes.connectorType == 'CCS2' && @.beckn:availabilityWindow.schema:startTime <= '12:30:00' && @.beckn:availabilityWindow.schema:endTime >= '14:30:00')]"
+    }
+  }
+}

@@ -1,0 +1,175 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "onix-api-microservice.fullname" . }}-{{ .Values.component }}
+  labels:
+    {{- include "onix-api-microservice.labels" . | nindent 4 }}
+    component: {{ .Values.component }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "onix-api-microservice.selectorLabels" . | nindent 6 }}
+      component: {{ .Values.component }}
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "onix-api-microservice.selectorLabels" . | nindent 8 }}
+        component: {{ .Values.component }}
+    spec:
+      initContainers:
+      - name: schema-setup
+        image: busybox:latest
+        command:
+        - sh
+        - -c
+        - |
+          mkdir -p /app/schemas/beckn.one_deg_ev-charging/v2.0.0
+          echo "Listing ConfigMap files..."
+          ls -la /tmp/schemas-configmap/ || echo "No files in ConfigMap"
+          echo "Copying schemas from ConfigMap..."
+          if [ -d /tmp/schemas-configmap ]; then
+            for file in /tmp/schemas-configmap/*; do
+              if [ -f "$file" ] && [ "$(basename "$file")" != ".gitkeep" ] && [ "$(basename "$file")" != "README.md" ]; then
+                cp "$file" /app/schemas/beckn.one_deg_ev-charging/v2.0.0/
+                echo "Copied: $(basename "$file")"
+              fi
+            done
+          fi
+          echo "Verifying copied files..."
+          ls -la /app/schemas/beckn.one_deg_ev-charging/v2.0.0/ || echo "Directory not found"
+          echo "Schema setup complete"
+        volumeMounts:
+        - name: schemas-temp
+          mountPath: /tmp/schemas-configmap
+          readOnly: true
+        - name: schemas
+          mountPath: /app/schemas
+      - name: config-setup
+        image: busybox:latest
+        command:
+        - sh
+        - -c
+        - |
+          echo "Setting up config files..."
+          mkdir -p /app/config/onix-{{ .Values.component }}
+          echo "Waiting for ConfigMap files to be available..."
+          # Wait for ConfigMap files to be available (max 30 seconds)
+          COUNTER=0
+          until [ -d /tmp/config-configmap ] && [ -n "$(ls -A /tmp/config-configmap 2>/dev/null)" ]; do
+            if [ $COUNTER -ge 30 ]; then
+              echo "ERROR: ConfigMap not available after 30 seconds"
+              ls -la /tmp/ || true
+              exit 1
+            fi
+            echo "Waiting for config ConfigMap... (attempt $((COUNTER+1)))"
+            sleep 1
+            COUNTER=$((COUNTER+1))
+          done
+          echo "ConfigMap found, listing files..."
+          ls -la /tmp/config-configmap/
+          echo "Copying config files from ConfigMap..."
+          FILE_COUNT=0
+          for file in /tmp/config-configmap/*; do
+            if [ -f "$file" ]; then
+              cp "$file" /app/config/onix-{{ .Values.component }}/
+              echo "Copied: $(basename "$file")"
+              FILE_COUNT=$((FILE_COUNT+1))
+            fi
+          done
+          if [ $FILE_COUNT -eq 0 ]; then
+            echo "ERROR: No config files found in ConfigMap"
+            exit 1
+          fi
+          echo "Verifying copied config files..."
+          ls -la /app/config/onix-{{ .Values.component }}/
+          echo "Config setup complete - copied $FILE_COUNT files"
+        volumeMounts:
+        - name: config-temp
+          mountPath: /tmp/config-configmap
+          readOnly: true
+        - name: config
+          mountPath: /app/config/onix-{{ .Values.component }}
+      containers:
+      - name: {{ .Values.component }}-plugin
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.service.targetPort }}
+          protocol: TCP
+        env:
+        {{- range .Values.env }}
+        - name: {{ .name }}
+          {{- if .value }}
+          value: {{ .value | quote }}
+          {{- else if .valueFrom }}
+          valueFrom:
+            {{- toYaml .valueFrom | nindent 12 }}
+          {{- end }}
+        {{- end }}
+        volumeMounts:
+        - name: config
+          mountPath: /app/config/onix-{{ .Values.component }}
+        - name: adapter-config
+          mountPath: /app/config/adapter.yaml
+          subPath: adapter.yaml
+        - name: schemas
+          mountPath: /app/schemas
+        - name: schemas-temp
+          mountPath: /tmp/schemas-configmap
+          readOnly: true
+        - name: config-temp
+          mountPath: /tmp/config-configmap
+          readOnly: true
+        {{- if .Values.resources }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: config
+        emptyDir: {}
+      - name: config-temp
+        configMap:
+          name: {{ include "onix-api-microservice.fullname" . }}-{{ .Values.component }}-config
+      - name: adapter-config
+        configMap:
+          name: {{ include "onix-api-microservice.fullname" . }}-{{ .Values.component }}-adapter
+      - name: schemas
+        emptyDir: {}
+      - name: schemas-temp
+        configMap:
+          name: {{ include "onix-api-microservice.fullname" . }}-schemas
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+

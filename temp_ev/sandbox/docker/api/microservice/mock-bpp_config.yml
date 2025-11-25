@@ -1,0 +1,10 @@
+server:
+  port: ":9002"
+
+
+defaults:
+  version: "2.0.0"
+  domain: "beckn.one:deg:ev-charging"
+  country_code: "IND"
+  city_code: "std:080"
+

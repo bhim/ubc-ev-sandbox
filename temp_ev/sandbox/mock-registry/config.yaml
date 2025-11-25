@@ -1,0 +1,52 @@
+server:
+  port: ":3030"
+
+subscribers:
+  - subscriber_id: "mock-bap"
+    subscriber_uri: "http://mock-bap:9001"
+    type: "BAP"
+  
+  - subscriber_id: "onix-bap"
+    subscriber_uri: "http://onix-bap:8001"
+    type: "BAP"
+  
+  - subscriber_id: "example-bap.com"
+    subscriber_uri: "https://api.example-bap.com/pilot/bap/energy/v1"
+    type: "BAP"
+    signing_public_key: "MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU="
+    encr_public_key: "MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU="
+    key_id: "bap-key-1"
+  
+  - subscriber_id: "mock-bpp"
+    subscriber_uri: "http://mock-bpp:9002"
+    type: "BPP"
+  
+  - subscriber_id: "onix-bpp"
+    subscriber_uri: "http://onix-bpp:8002"
+    type: "BPP"
+  
+  - subscriber_id: "example-bpp.com"
+    subscriber_uri: "https://api.example-bpp.com/pilot/bpp/"
+    type: "BPP"
+    signing_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+    encr_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+    key_id: "bpp-key-1"
+  
+  - subscriber_id: "chargezone-energy-bpp.com"
+    subscriber_uri: "https://api.example-bpp.com/pilot/bpp/"
+    type: "BPP"
+    signing_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+    encr_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+    key_id: "bpp-key-1"
+  
+  - subscriber_id: "mock-cds"
+    subscriber_uri: "http://mock-cds:8082"
+    type: "CDS"
+    signing_public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+    encr_public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+    key_id: "cds-key-1"
+
+defaults:
+  valid_from: "2025-01-01T00:00:00Z"
+  valid_until: "2099-12-31T23:59:59Z"
+

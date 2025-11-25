@@ -1,0 +1,15 @@
+apiVersion: v2
+name: onix-rabbitmq
+description: A Helm chart for ONIX RabbitMQ deployment (BAP/BPP)
+type: application
+version: 0.1.0
+appVersion: "latest"
+keywords:
+  - onix
+  - bap
+  - bpp
+  - ev-charging
+  - rabbitmq
+maintainers:
+  - name: NBSL TEAM
+

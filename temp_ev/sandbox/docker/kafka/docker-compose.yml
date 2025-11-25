@@ -1,0 +1,272 @@
+
+services:
+  # Kafka Message Broker (KRaft mode - no Zookeeper needed)
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    pull_policy: always
+    container_name: kafka
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      # KRaft mode configuration
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_NODE_ID=1
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      # Topic and replication settings
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      # Log directories for KRaft
+      - KAFKA_LOG_DIRS=/var/lib/kafka/data
+      - CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - onix-network
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis for onix-bap-plugin-kafka
+  redis-bap:
+    image: redis:alpine
+    pull_policy: always
+    container_name: redis-bap
+    ports:
+      - "6379:6379"
+    networks:
+      - onix-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis for onix-bpp-plugin-kafka
+  redis-bpp:
+    image: redis:alpine
+    pull_policy: always
+    container_name: redis-bpp
+    ports:
+      - "6380:6379"
+    networks:
+      - onix-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Onix BAP Kafka Plugin
+  onix-bap-plugin-kafka:
+    image: manendrapalsingh/onix-bap-plugin-kafka:latest
+    pull_policy: always
+    container_name: onix-bap-plugin-kafka
+    ports:
+      - "8001:8001"  # HTTP port for bapTxnReceiver endpoint
+    volumes:
+      # Mount config directory to the expected path in container
+      - ../../../docker/kafka/config/onix-bap:/app/config/message-baised/kafka/onix-bap
+      # Mount schema directory (read-only)
+      - ../../../schemas:/app/schemas:ro
+    environment:
+      - CONFIG_FILE=/app/config/message-baised/kafka/onix-bap/adapter.yaml
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis-bap:
+        condition: service_healthy
+      mock-registry:
+        condition: service_healthy
+    networks:
+      - onix-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  # Onix BPP Kafka Plugin
+  onix-bpp-plugin-kafka:
+    image: manendrapalsingh/onix-bpp-plugin-kafka:latest
+    pull_policy: always
+    container_name: onix-bpp-plugin-kafka
+    ports:
+      - "8002:8002"  # HTTP port for bppTxnReceiver endpoint
+    volumes:
+      # Mount config directory to the expected path in container
+      - ../../../docker/kafka/config/onix-bpp:/app/config/message-baised/kafka/onix-bpp
+      # Mount schema directory (read-only)
+      - ../../../schemas:/app/schemas:ro
+    environment:
+      - CONFIG_FILE=/app/config/message-baised/kafka/onix-bpp/adapter.yaml
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis-bpp:
+        condition: service_healthy
+      mock-registry:
+        condition: service_healthy
+    networks:
+      - onix-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  # Mock Registry Service
+  mock-registry:
+    image: manendrapalsingh/mock-registry:latest
+    pull_policy: always
+    container_name: mock-registry
+    ports:
+      - "3030:3030"
+    volumes:
+      # Mount config file from local directory
+      - ./mock-registry_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3030/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Mock CDS Service
+  mock-cds:
+    image: manendrapalsingh/mock-cds:latest
+    pull_policy: always
+    container_name: mock-cds
+    ports:
+      - "8082:8082"
+    volumes:
+      # Mount config file from local directory
+      - ./mock-cds_config.yml:/app/config/config.yaml:ro
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      mock-registry:
+        condition: service_healthy
+
+  # Mock BAP Kafka Service
+  mock-bap-kafka:
+    image: manendrapalsingh/mock-bap-kafka:latest
+    pull_policy: always
+    container_name: mock-bap-kafka
+    # Note: HTTP port not exposed as service runs in queue-only mode
+    # Health check runs internally via localhost:9003
+    volumes:
+      # Mount config file from local directory
+      - ./mock-bap-kafka_config.yml:/app/config/config.yaml:ro
+    environment:
+      # Config file path
+      CONFIG_FILE: /app/config/config.yaml
+      # Kafka configuration from config.yaml
+      KAFKA_BROKERS: kafka:9092
+      # Defaults configuration from config.yaml (should match config file)
+      DEFAULTS_VERSION: "2.0.0"
+      DEFAULTS_COUNTRY_CODE: "IND"
+      DEFAULTS_CITY_CODE: "std:080"
+      DEFAULTS_SUBSCRIBER_ID: "ev-charging.sandbox1.com"
+    networks:
+    - onix-network
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis-bap:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Mock BPP Kafka Service
+  mock-bpp-kafka:
+    image: manendrapalsingh/mock-bpp-kafka:latest
+    pull_policy: always
+    container_name: mock-bpp-kafka
+    # Note: HTTP port not exposed as service runs in queue-only mode
+    # Health check runs internally via localhost:9004
+    volumes:
+      # Mount config file from local directory
+      - ./mock-bpp-kafka_config.yml:/app/config/config.yaml:ro
+    environment:
+      # Config file path
+      CONFIG_FILE: /app/config/config.yaml
+      # Kafka configuration from config.yaml
+      KAFKA_BROKERS: kafka:9092
+      # Defaults configuration from config.yaml (should match config file)
+      DEFAULTS_VERSION: "2.0.0"
+      DEFAULTS_COUNTRY_CODE: "IND"
+      DEFAULTS_CITY_CODE: "std:080"
+      DEFAULTS_SUBSCRIBER_ID: "ev-charging.sandbox2.com"
+    networks:
+      - onix-network
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis-bpp:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Kafka UI (by Provectus) - Web UI for managing and monitoring Kafka
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    networks:
+      - onix-network
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  kafka-data:
+    driver: local
+
+networks:
+  onix-network:
+    driver: bridge

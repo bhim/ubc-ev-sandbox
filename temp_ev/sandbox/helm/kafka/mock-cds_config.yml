@@ -1,0 +1,40 @@
+server:
+  port: ":8082"
+
+registry:
+  host: "mock-registry"
+  port: "3030"
+  lookup_path: "/lookup"
+
+cds:
+  signing:
+    private_key: "o33NCO6dqo+MopQEA7cmRFm4544XkHfbAktjvaCCi7U="
+    public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+    subscriber_id: "mock-cds"
+    key_id: "cds-key-1"
+
+
+endpoints:
+  bpps:
+    - host: "onix-bpp-plugin-kafka"
+      port: "8002"
+      discover_path: "/bpp/receiver/discover"
+      subscriber_id: "ev-charging.sandbox2.com"
+    # Add more BPPs here as needed
+    # - host: "another-onix-bpp-plugin-kafka"
+    #   port: "8002"
+    #   discover_path: "/bpp/receiver/discover"
+    #   subscriber_id: "another-onix-bpp-plugin.com"
+
+timing:
+  broadcast_discover_delay_ms: 500
+  aggregate_response_delay_ms: 1000
+  signature_expiry_minutes: 5
+
+defaults:
+  version: "2.0.0"
+  domain: "beckn.one:deg:ev-charging"
+  country_code: "IND"
+  city_code: "std:080"
+  default_gps: "12.9352,77.6245"
+

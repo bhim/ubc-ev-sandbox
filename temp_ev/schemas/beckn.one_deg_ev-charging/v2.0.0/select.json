@@ -1,0 +1,372 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "select",
+  "type": "object",
+  "properties": {
+    "context": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string",
+          "description": "Identifier of the domain",
+          "pattern": "^(dent:ev-charging:|ev_charging_network|beckn.one:deg:ev-charging)"
+        },
+        "action": {
+          "type": "string",
+          "enum": ["select"],
+          "description": "API endpoint to be called"
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "country": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "description": "Country code"
+                }
+              },
+              "required": ["code"]
+            },
+            "city": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "description": "City code"
+                }
+              },
+              "required": ["code"]
+            }
+          },
+          "required": ["country", "city"]
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the Beckn protocol"
+        },
+        "bap_id": {
+          "type": "string",
+          "description": "Identification of the BAP"
+        },
+        "bap_uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "BAP endpoint"
+        },
+        "bpp_id": {
+          "type": "string",
+          "description": "Identification of the BPP"
+        },
+        "bpp_uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "BPP endpoint"
+        },
+        "transaction_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Transaction identifier"
+        },
+        "message_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Message identifier"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Time at which the request was generated"
+        },
+        "ttl": {
+          "type": "string",
+          "description": "Time to live (ISO 8601 duration format)"
+        },
+        "schema_context": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "description": "Schema context URLs"
+        }
+      },
+      "required": ["domain", "action", "location", "version", "bap_id", "bap_uri", "bpp_id", "bpp_uri", "transaction_id", "message_id", "timestamp"]
+    },
+    "message": {
+      "type": "object",
+      "properties": {
+        "order": {
+          "type": "object",
+          "properties": {
+            "@context": {
+              "type": "string",
+              "format": "uri",
+              "description": "JSON-LD context"
+            },
+            "@type": {
+              "type": "string",
+              "enum": ["beckn:Order"],
+              "description": "Order type"
+            },
+            "beckn:id": {
+              "type": "string",
+              "description": "Order identifier"
+            },
+            "beckn:orderStatus": {
+              "type": "string",
+              "description": "Order status"
+            },
+            "beckn:seller": {
+              "type": "string",
+              "description": "Seller identifier"
+            },
+            "beckn:buyer": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "description": "Buyer identifier"
+                },
+                {
+                  "type": "object",
+                  "description": "Buyer party object"
+                }
+              ]
+            },
+            "beckn:orderValue": {
+              "type": "object",
+              "properties": {
+                "currency": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "number"
+                },
+                "components": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "number"
+                      },
+                      "currency": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "required": ["currency", "value"]
+            },
+            "beckn:orderItems": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "beckn:lineId": {
+                    "type": "string"
+                  },
+                  "beckn:orderedItem": {
+                    "type": "string"
+                  },
+                  "beckn:quantity": {
+                    "type": "number"
+                  },
+                  "beckn:acceptedOffer": {
+                    "type": "object",
+                    "properties": {
+                      "@context": {
+                        "type": "string",
+                        "format": "uri"
+                      },
+                      "@type": {
+                        "type": "string",
+                        "enum": ["beckn:Offer"]
+                      },
+                      "beckn:id": {
+                        "type": "string"
+                      },
+                      "beckn:descriptor": {
+                        "type": "object",
+                        "properties": {
+                          "@type": {
+                            "type": "string"
+                          },
+                          "schema:name": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "beckn:items": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "beckn:price": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "number"
+                          },
+                          "applicableQuantity": {
+                            "type": "object",
+                            "properties": {
+                              "unitText": {
+                                "type": "string"
+                              },
+                              "unitCode": {
+                                "type": "string"
+                              },
+                              "unitQuantity": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        },
+                        "required": ["currency", "value"]
+                      },
+                      "beckn:validity": {
+                        "type": "object",
+                        "properties": {
+                          "@type": {
+                            "type": "string"
+                          },
+                          "schema:startDate": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "schema:endDate": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      },
+                      "beckn:acceptedPaymentMethod": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "beckn:offerAttributes": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "beckn:price": {
+                    "type": "object",
+                    "properties": {
+                      "currency": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "number"
+                      },
+                      "applicableQuantity": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                },
+                "required": ["beckn:orderedItem"]
+              },
+              "minItems": 1
+            },
+            "beckn:fulfillment": {
+              "type": "object",
+              "properties": {
+                "@context": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "@type": {
+                  "type": "string",
+                  "enum": ["beckn:Fulfillment"]
+                },
+                "beckn:id": {
+                  "type": "string"
+                },
+                "beckn:mode": {
+                  "type": "string"
+                },
+                "beckn:deliveryAttributes": {
+                  "type": "object"
+                },
+                "beckn:status": {
+                  "type": "string"
+                }
+              }
+            },
+            "beckn:orderAttributes": {
+              "type": "object"
+            },
+            "beckn:payment": {
+              "type": "object",
+              "properties": {
+                "@context": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "@type": {
+                  "type": "string",
+                  "enum": ["beckn:Payment"]
+                },
+                "beckn:id": {
+                  "type": "string"
+                },
+                "beckn:status": {
+                  "type": "string"
+                },
+                "beckn:amount": {
+                  "type": "object",
+                  "properties": {
+                    "currency": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "beckn:paymentURL": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "beckn:txnRef": {
+                  "type": "string"
+                },
+                "beckn:acceptedPaymentMethods": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "beckn:beneficiary": {
+                  "type": "string"
+                },
+                "beckn:paidAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": ["order"]
+    }
+  },
+  "required": ["context", "message"],
+  "additionalProperties": false
+}

@@ -1,0 +1,7 @@
+apiVersion: v2
+name: mock-bap
+description: Helm chart for Mock BAP Service
+type: application
+version: 0.1.0
+appVersion: latest
+

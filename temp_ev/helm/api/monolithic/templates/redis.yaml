@@ -1,0 +1,113 @@
+{{- if .Values.redis.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "onix-api-monolithic.fullname" . }}-redis-{{ .Values.component }}
+  labels:
+    {{- include "onix-api-monolithic.labels" . | nindent 4 }}
+    component: redis
+    app-component: {{ .Values.component }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "onix-api-monolithic.selectorLabels" . | nindent 6 }}
+      component: redis
+      app-component: {{ .Values.component }}
+  template:
+    metadata:
+      labels:
+        {{- include "onix-api-monolithic.selectorLabels" . | nindent 8 }}
+        component: redis
+        app-component: {{ .Values.component }}
+    spec:
+      containers:
+      - name: redis
+        image: "{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}"
+        ports:
+        - name: redis
+          containerPort: {{ .Values.redis.service.targetPort }}
+          protocol: TCP
+        command:
+        - redis-server
+        - --appendonly
+        - "yes"
+        volumeMounts:
+        {{- if .Values.redis.persistence.enabled }}
+        - name: redis-data
+          mountPath: /data
+        {{- end }}
+        {{- if .Values.redis.resources }}
+        resources:
+          {{- toYaml .Values.redis.resources | nindent 10 }}
+        {{- end }}
+        {{- if .Values.redis.healthcheck.enabled }}
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: {{ .Values.redis.healthcheck.initialDelaySeconds }}
+          periodSeconds: {{ .Values.redis.healthcheck.periodSeconds }}
+          timeoutSeconds: {{ .Values.redis.healthcheck.timeoutSeconds }}
+          successThreshold: {{ .Values.redis.healthcheck.successThreshold }}
+          failureThreshold: {{ .Values.redis.healthcheck.failureThreshold }}
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: {{ .Values.redis.healthcheck.initialDelaySeconds }}
+          periodSeconds: {{ .Values.redis.healthcheck.periodSeconds }}
+          timeoutSeconds: {{ .Values.redis.healthcheck.timeoutSeconds }}
+          successThreshold: {{ .Values.redis.healthcheck.successThreshold }}
+          failureThreshold: {{ .Values.redis.healthcheck.failureThreshold }}
+        {{- end }}
+      {{- if .Values.redis.persistence.enabled }}
+      volumes:
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: {{ include "onix-api-monolithic.fullname" . }}-redis-{{ .Values.component }}-pvc
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ev-charging-redis-onix-{{ .Values.component }}
+  labels:
+    {{- include "onix-api-monolithic.labels" . | nindent 4 }}
+    component: redis
+    app-component: {{ .Values.component }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.redis.service.port }}
+      targetPort: redis
+      protocol: TCP
+      name: redis
+  selector:
+    {{- include "onix-api-monolithic.selectorLabels" . | nindent 4 }}
+    component: redis
+    app-component: {{ .Values.component }}
+---
+{{- if .Values.redis.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "onix-api-monolithic.fullname" . }}-redis-{{ .Values.component }}-pvc
+  labels:
+    {{- include "onix-api-monolithic.labels" . | nindent 4 }}
+    component: redis
+    app-component: {{ .Values.component }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.redis.persistence.size }}
+  {{- if .Values.redis.persistence.storageClass }}
+  storageClassName: {{ .Values.redis.persistence.storageClass }}
+  {{- end }}
+{{- end }}
+{{- end }}
+

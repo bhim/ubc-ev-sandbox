@@ -1,0 +1,196 @@
+{
+	"id": "bpp-environment-ev-charging",
+	"name": "BPP EV Charging Environment - Microservice",
+	"values": [
+		{
+			"key": "domain",
+			"value": "beckn.one:deg:ev-charging",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "version",
+			"value": "2.0.0",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "bap_id",
+			"value": "ev-charging.sandbox1.com",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "bap_uri",
+			"value": "http://onix-bap-plugin:8001/bap/receiver",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "bpp_id",
+			"value": "ev-charging.sandbox2.com",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "bpp_uri",
+			"value": "http://onix-bpp-plugin:8002/bpp/receiver",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "bap_adapter_url",
+			"value": "http://localhost:8001/bap/caller",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "bpp_adapter_url",
+			"value": "http://localhost:8002/bpp/caller",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "bpp_receiver_url",
+			"value": "http://localhost:8002/bpp/receiver",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "discover_url",
+			"value": "http://localhost:8002/bpp/receiver/discover",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "select_url",
+			"value": "http://localhost:8002/bpp/receiver/select",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "init_url",
+			"value": "http://localhost:8002/bpp/receiver/init",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "confirm_url",
+			"value": "http://localhost:8002/bpp/receiver/confirm",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "update_url",
+			"value": "http://localhost:8002/bpp/receiver/update",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "track_url",
+			"value": "http://localhost:8002/bpp/receiver/track",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "cancel_url",
+			"value": "http://localhost:8002/bpp/receiver/cancel",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "rating_url",
+			"value": "http://localhost:8002/bpp/receiver/rating",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "support_url",
+			"value": "http://localhost:8002/bpp/receiver/support",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "on_discover_url",
+			"value": "http://localhost:8002/bpp/caller/on_discover",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "on_select_url",
+			"value": "http://localhost:8002/bpp/caller/on_select",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "on_init_url",
+			"value": "http://localhost:8002/bpp/caller/on_init",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "on_confirm_url",
+			"value": "http://localhost:8002/bpp/caller/on_confirm",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "on_update_url",
+			"value": "http://localhost:8002/bpp/caller/on_update",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "on_track_url",
+			"value": "http://localhost:8002/bpp/caller/on_track",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "on_cancel_url",
+			"value": "http://localhost:8002/bpp/caller/on_cancel",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "on_rating_url",
+			"value": "http://localhost:8002/bpp/caller/on_rating",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "on_support_url",
+			"value": "http://localhost:8002/bpp/caller/on_support",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "on_status_url",
+			"value": "http://localhost:8002/bpp/caller/on_status",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "transaction_id",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "order_id",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "session_id",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		}
+	],
+	"_postman_variable_scope": "environment",
+	"_postman_exported_at": "2025-01-27T00:00:00.000Z",
+	"_postman_exported_using": "Postman/10.0.0"
+}
+

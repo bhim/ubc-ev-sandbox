@@ -1,0 +1,37 @@
+# ONIX BPP Receiver Routing Configuration
+
+# Supports Phase 1 (Discover from CDS) and Phase 2+ (Direct from BAP-ONIX)
+# Phase 1: Discover requests from CDS (HTTP) -> routes to mock-bpp (HTTP)
+# Phase 2+: Other requests from BAP-ONIX (HTTP) -> routes to mock-bpp (HTTP)
+# All routes to backend service via HTTP API
+
+routingRules:
+  # Phase 1: Discover request from CDS -> routes to mock-bpp via HTTP
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bpp:9002
+      excludeAction: false
+    endpoints:
+      - discover
+
+  # Phase 2+: Other requests from BAP-ONIX Caller (HTTP) -> routes to mock-bpp via HTTP
+  # Requests come directly from BAP-ONIX (bypasses CDS)
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-bpp:9002
+      excludeAction: false
+    endpoints:
+      - select
+      - init
+      - confirm
+      - status
+      - track
+      - cancel
+      - update
+      - rating
+      - support
+

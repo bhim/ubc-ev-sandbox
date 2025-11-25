@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "onix-api-microservice.fullname" . }}-{{ .Values.component }}-config
+  labels:
+    {{- include "onix-api-microservice.labels" . | nindent 4 }}
+    component: {{ .Values.component }}
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace }}
+data:
+  {{- if eq .Values.component "bap" }}
+  bap_caller_routing.yaml: |
+{{ .Values.config.routing.caller | indent 4 }}
+  bap_receiver_routing.yaml: |
+{{ .Values.config.routing.receiver | indent 4 }}
+  {{- else }}
+  bpp_caller_routing.yaml: |
+{{ .Values.config.routing.caller | indent 4 }}
+  bpp_receiver_routing.yaml: |
+{{ .Values.config.routing.receiver | indent 4 }}
+  {{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "onix-api-microservice.fullname" . }}-{{ .Values.component }}-adapter
+  labels:
+    {{- include "onix-api-microservice.labels" . | nindent 4 }}
+    component: {{ .Values.component }}
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace }}
+data:
+  adapter.yaml: |
+{{- $redisHost := .Values.redis.host }}
+{{- if not $redisHost }}
+{{- $redisHost = printf "%s-redis-%s" (include "onix-api-microservice.fullname" .) .Values.component }}
+{{- end }}
+{{- $redisPort := int .Values.redis.service.port }}
+{{- $redisAddr := printf "%s:%d" $redisHost $redisPort }}
+{{- $adapterConfig := .Values.config.adapter | replace "REDIS_HOST_PLACEHOLDER:6379" $redisAddr }}
+{{ $adapterConfig | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "onix-api-microservice.fullname" . }}-schemas
+  labels:
+    {{- include "onix-api-microservice.labels" . | nindent 4 }}
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace }}
+data:
+  # Note: In production, you may want to use a PersistentVolume or initContainer
+  # to populate schemas from your schemas directory
+  # For now, this is a placeholder - you'll need to populate it with actual schema files
+  .gitkeep: ""
+

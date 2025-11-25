@@ -1,0 +1,59 @@
+{
+	"info": {
+		"_postman_id": "meta-transaction-ledger-001",
+		"name": "Meta-Transaction-Ledger",
+		"description": "Meta API for storing transaction data (amount, payment type, date/time) from BAP and BPP to the network ledger",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30848972"
+	},
+	"item": [
+		{
+			"name": "transaction_ledger",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"context\": {\n    \"version\": \"{{version}}\",\n    \"action\": \"transaction_ledger\",\n    \"domain\": \"{{domain}}\",\n    \"location\": {\n      \"country\": {\n        \"code\": \"IND\"\n      },\n      \"city\": {\n        \"code\": \"std:080\"\n      }\n    },\n    \"bap_id\": \"{{bap_id}}\",\n    \"bap_uri\": \"{{bap_uri}}\",\n    \"bpp_id\": \"{{bpp_id}}\",\n    \"bpp_uri\": \"{{bpp_uri}}\",\n    \"transaction_id\": \"{{transaction_id}}\",\n    \"message_id\": \"{{$guid}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"ttl\": \"PT30S\",\n    \"schema_context\": [\n      \"https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld\"\n    ]\n  },\n  \"message\": {\n    \"ledger\": {\n      \"@context\": \"https://becknprotocol.io/schemas/core/v2/Ledger/schema-context.jsonld\",\n      \"@type\": \"beckn:Ledger\",\n      \"beckn:id\": \"txn-ledger-{{$guid}}\",\n      \"beckn:type\": \"TRANSACTION\",\n      \"beckn:entity\": {\n        \"@type\": \"beckn:Entity\",\n        \"beckn:type\": \"bap\",\n        \"beckn:id\": \"{{bap_id}}\"\n      },\n      \"beckn:reference\": {\n        \"@type\": \"beckn:Reference\",\n        \"beckn:orderId\": \"order-123456\"\n      },\n      \"beckn:payment\": {\n        \"@context\": \"https://becknprotocol.io/schemas/core/v2/Payment/schema-context.jsonld\",\n        \"@type\": \"beckn:Payment\",\n        \"beckn:id\": \"payment-123e4567-e89b-12d3-a456-426614174000\",\n        \"beckn:txnRef\": \"TXN-123456789\",\n        \"beckn:amount\": {\n          \"currency\": \"INR\",\n          \"value\": 100.0\n        },\n        \"beckn:paymentType\": \"PREPAID\",\n        \"beckn:paymentMethod\": \"UPI\",\n        \"beckn:status\": \"PAID\"\n      },\n      \"beckn:transactionDate\": \"{{timestamp}}\",\n      \"beckn:completionDate\": \"2025-01-27T11:30:00Z\"\n    }\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{meta_service_url}}/transaction_ledger",
+					"host": [
+						"{{meta_service_url}}"
+					],
+					"path": [
+						"transaction_ledger"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		}
+	]
+}
+

@@ -1,0 +1,58 @@
+{
+	"info": {
+		"_postman_id": "meta-rating-ledger-001",
+		"name": "Meta-Rating-Ledger",
+		"description": "Meta API for storing rating data from BAP and BPP to the network ledger",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30848972"
+	},
+	"item": [
+		{
+			"name": "rating_ledger",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"context\": {\n    \"version\": \"{{version}}\",\n    \"action\": \"rating_ledger\",\n    \"domain\": \"{{domain}}\",\n    \"location\": {\n      \"country\": {\n        \"code\": \"IND\"\n      },\n      \"city\": {\n        \"code\": \"std:080\"\n      }\n    },\n    \"bap_id\": \"{{bap_id}}\",\n    \"bap_uri\": \"{{bap_uri}}\",\n    \"bpp_id\": \"{{bpp_id}}\",\n    \"bpp_uri\": \"{{bpp_uri}}\",\n    \"transaction_id\": \"{{transaction_id}}\",\n    \"message_id\": \"{{$guid}}\",\n    \"timestamp\": \"{{timestamp}}\",\n    \"ttl\": \"PT30S\",\n    \"schema_context\": [\n      \"https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schemas/charging_service/v1/context.jsonld\"\n    ]\n  },\n  \"message\": {\n    \"ledger\": {\n      \"@context\": \"https://becknprotocol.io/schemas/core/v2/Ledger/schema-context.jsonld\",\n      \"@type\": \"beckn:Ledger\",\n      \"beckn:id\": \"rating-ledger-{{$guid}}\",\n      \"beckn:type\": \"RATING\",\n      \"beckn:entity\": {\n        \"@type\": \"beckn:Entity\",\n        \"beckn:type\": \"bap\",\n        \"beckn:id\": \"{{bap_id}}\"\n      },\n      \"beckn:reference\": {\n        \"@type\": \"beckn:Reference\",\n        \"beckn:orderId\": \"order-123456\",\n        \"beckn:fulfillmentId\": \"fulfillment-001\"\n      },\n      \"beckn:rating\": {\n        \"@context\": \"https://becknprotocol.io/schemas/core/v2/Rating/schema-context.jsonld\",\n        \"@type\": \"beckn:Rating\",\n        \"beckn:value\": 5,\n        \"beckn:best\": 5,\n        \"beckn:worst\": 1,\n        \"beckn:category\": \"fulfillment\"\n      },\n      \"beckn:feedback\": {\n        \"@context\": \"https://becknprotocol.io/schemas/core/v2/Feedback/schema-context.jsonld\",\n        \"@type\": \"beckn:Feedback\",\n        \"beckn:comments\": \"Excellent charging experience! The station was clean, easy to find, and the charging was fast and reliable.\",\n        \"beckn:tags\": [\"fast-charging\", \"easy-to-use\", \"clean-station\", \"helpful-staff\"]\n      },\n      \"beckn:timestamp\": \"{{timestamp}}\"\n    }\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{meta_service_url}}/rating_ledger",
+					"host": [
+						"{{meta_service_url}}"
+					],
+					"path": [
+						"rating_ledger"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		}
+	]
+}
