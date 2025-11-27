@@ -17,7 +17,7 @@ services:
 
   onix-bpp-plugin:
     # Use pre-built image from Docker Hub
-    image: manendrapalsingh/onix-bpp-plugin:latest
+    image: manendrapalsingh/onix-adapter:latest
     container_name: onix-bpp-plugin
     ports:
       - "8002:8002"

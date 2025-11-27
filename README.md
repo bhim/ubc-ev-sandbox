@@ -25,16 +25,16 @@
 
 ## Overview
 
-This repository provides a complete sandbox environment for integrating the **[onix-adapter](https://github.com/Beckn-One/beckn-onix)** (also known as Beckn-ONIX) with **BAP (Buyer App Provider)** and **BPP (Buyer Platform Provider)** applications for EV Charging networks.
+This repository provides a complete sandbox environment for integrating the **[onix-adapter](https://github.com/Beckn-One/beckn-onix)** (also known as Beckn-ONIX) with **BAP (Application Platform)** and **BPP (Provider Platform)** applications for EV Charging networks.
 
 ### What is Onix-Adapter?
 
-The **onix-adapter** is a production-ready, plugin-based middleware adapter for the Beckn Protocol. It acts as a protocol adapter between Beckn Application Platforms (BAPs) and Beckn Provider Platforms (BPPs), ensuring secure, validated, and compliant message exchange across various commerce networks.
+The **onix-adapter** is a production-ready, plugin-based middleware adapter for the Beckn Protocol. It acts as a protocol adapter between Application Platforms (BAPs) and Provider Platforms (BPPs), ensuring secure, validated, and compliant message exchange across various commerce networks.
 
 ### Key Concepts
 
-- **BAP (Beckn Application Platform)**: Buyer-side applications that help users search for and purchase products/services (e.g., consumer apps, aggregators)
-- **BPP (Beckn Provider Platform)**: Seller-side platforms that provide products/services (e.g., merchant platforms, service providers)
+- **BAP (Application Platform)**: Buyer-side applications that help users search for and purchase products/services (e.g., consumer apps, aggregators)
+- **BPP (Provider Platform)**: Seller-side platforms that provide products/services (e.g., merchant platforms, service providers)
 - **Onix-Adapter**: Middleware that handles protocol compliance, message signing, validation, and routing between BAPs and BPPs
 - **CDS (Catalog Discovery Service)**: Aggregates discover requests from BAPs and broadcasts to registered BPPs
 - **Registry**: Maintains a registry of all network participants (BAPs, BPPs, CDS)
@@ -43,26 +43,26 @@ The **onix-adapter** is a production-ready, plugin-based middleware adapter for 
 
 ## Features
 
-### 🚀 Complete Sandbox Environment
+### Complete Sandbox Environment
 
 - **Full Testing Environment**: Pre-configured complete sandbox with ONIX adapters, mock services, and infrastructure
 - **Standalone Adapters**: Deploy only ONIX adapters for integration with your own services
 - **Mock Services**: Simulated BAP, BPP, CDS, and Registry services for testing
 
-### 🏗️ Architecture
+### Architecture
 
-- **REST API Communication**: Synchronous HTTP/REST communication for real-time interactions
-- **Redis Caching**: Performance optimization and state management
+- **REST API Communication**: Asynchronous HTTP/REST messaging for real-time interactions
+- **Redis Caching**: Performance optimization and async state management
 - **Docker Compose**: Easy local development and testing setup
 
-### 🔐 Enterprise-Ready
+### Enterprise-Ready
 
 - **Ed25519 Digital Signatures**: Cryptographically secure message signing and validation
 - **JSON Schema Validation**: Ensures protocol compliance using schemas from `schemas/` directory
 - **Configurable Routing**: YAML-based routing rules
 - **Structured Logging**: JSON-formatted logs with transaction tracking
 
-### 📊 Production Features
+### Production Features
 
 - **Health Checks**: Liveness and readiness probes for all services
 - **Environment-Specific Configs**: Separate configurations for different services
@@ -76,13 +76,6 @@ The **onix-adapter** is a production-ready, plugin-based middleware adapter for 
 
 - Docker Engine 20.10 or higher
 - Docker Compose 2.0 or higher
-- Access to onix-adapter Docker images:
-  - `manendrapalsingh/onix-bap-plugin:latest`
-  - `manendrapalsingh/onix-bpp-plugin:latest`
-  - `manendrapalsingh/mock-bap:latest`
-  - `manendrapalsingh/mock-bpp:latest`
-  - `manendrapalsingh/mock-cds:latest`
-  - `manendrapalsingh/mock-registry:latest`
 
 ### Recommended Starting Point
 
@@ -219,252 +212,6 @@ Phase 2+: Direct BPP Communication
    - KeyManager (HashiCorp Vault or simple key management)
    - Registry (Subscriber lookup)
 
----
-
-## Repository Structure
-
-```
-ubc-ev-sandbox/
-├── api-collection/                   # API documentation and collections
-│   ├── field-description/            # Field documentation
-│   │   ├── Field_Documentation.csv
-│   │   └── FIELD_REFERENCE.md
-│   ├── postman-collection/           # Postman API collections
-│   │   ├── bap/                      # BAP API collections by action
-│   │   │   ├── all-api/
-│   │   │   ├── cancel/
-│   │   │   ├── confirm/
-│   │   │   ├── discover/
-│   │   │   ├── init/
-│   │   │   ├── rating/
-│   │   │   ├── select/
-│   │   │   ├── support/
-│   │   │   ├── track/
-│   │   │   └── update/
-│   │   └── bpp/                      # BPP API collections by callback
-│   │       ├── all-apis/
-│   │       ├── on_cancel/
-│   │       ├── on_confirm/
-│   │       ├── on_discover/
-│   │       ├── on_init/
-│   │       ├── on_rating/
-│   │       ├── on_select/
-│   │       ├── on_status/
-│   │       ├── on_support/
-│   │       ├── on_track/
-│   │       └── on_update/
-│   ├── swagger/                      # OpenAPI specifications
-│   │   ├── bap.yaml
-│   │   └── bpp.yaml
-│   └── README.md
-├── onix-adaptor/                     # Standalone ONIX adapter integration
-│   ├── config/
-│   │   ├── onix-bap/                 # BAP adapter configuration
-│   │   │   ├── adapter.yaml
-│   │   │   ├── bap_caller_routing.yaml
-│   │   │   └── bap_receiver_routing.yaml
-│   │   └── onix-bpp/                 # BPP adapter configuration
-│   │       ├── adapter.yaml
-│   │       ├── bpp_caller_routing.yaml
-│   │       └── bpp_receiver_routing.yaml
-│   ├── docker-compose-onix-bap-plugin.yml
-│   ├── docker-compose-onix-bpp-plugin.yml
-│   └── README.md
-├── sandbox/                          # Complete sandbox environment
-│   ├── docker-compose.yml            # Unified compose file for all services
-│   ├── onix-bap_config.yml           # Reference config for ONIX BAP
-│   ├── onix-bpp_config.yml           # Reference config for ONIX BPP
-│   ├── mock-registry_config.yml      # Mock registry configuration
-│   ├── mock-cds_config.yml           # Mock CDS configuration
-│   ├── mock-bap_config.yml           # Mock BAP configuration
-│   ├── mock-bpp_config.yml           # Mock BPP configuration
-│   ├── bap-evn.json                  # BAP environment variables
-│   ├── bpp-evn.json                  # BPP environment variables
-│   └── README.md
-├── schemas/                          # JSON schema files for validation
-│   └── beckn.one_deg_ev-charging/
-│       └── v2.0.0/
-│           ├── all.json              # Combined schema
-│           ├── discover.json
-│           ├── select.json
-│           ├── init.json
-│           ├── confirm.json
-│           ├── update.json
-│           ├── cancel.json
-│           ├── track.json
-│           ├── support.json
-│           ├── rating.json
-│           ├── on_discover.json
-│           ├── on_select.json
-│           ├── on_init.json
-│           ├── on_confirm.json
-│           ├── on_update.json
-│           ├── on_cancel.json
-│           ├── on_track.json
-│           ├── on_status.json
-│           ├── on_support.json
-│           └── on_rating.json
-├── LICENSE
-└── README.md                         # This file
-```
-
----
-
-## Configuration
-
-### Configuration Files
-
-Each integration method includes:
-
-1. **Docker Compose Files**: Service definitions with networking and volumes
-2. **Adapter Configuration** (`adapter.yaml`): Core adapter settings, modules, and plugins
-3. **Routing Configuration**: YAML files defining routing rules for BAP and BPP
-4. **Environment Variables**: Container environment configuration
-
-### Key Configuration Areas
-
-- **HTTP Settings**: Port, timeouts, and connection pooling
-- **Plugin Configuration**: Cache, router, signer, validators
-- **Module Definition**: Transaction receivers and callers
-- **Routing Rules**: Phase 1 (CDS) and Phase 2+ (Direct BPP) routing
-- **Registry Configuration**: Subscriber lookup and key management
-
-### Configuration Workflow
-
-1. **Service Discovery Flow**:
-   - BAP sends discover request → ONIX BAP adapter
-   - ONIX BAP routes to → Mock CDS
-   - Mock CDS broadcasts to → All registered BPPs
-   - BPPs respond → Mock CDS aggregates
-   - Mock CDS sends aggregated response → ONIX BAP → Mock BAP
-
-2. **Transaction Flow** (Phase 2+):
-   - BAP sends select/init/confirm → ONIX BAP adapter
-   - ONIX BAP routes directly to → ONIX BPP (bypasses CDS)
-   - ONIX BPP forwards to → Mock BPP backend
-   - Mock BPP responds → ONIX BPP
-   - ONIX BPP routes callback → ONIX BAP → Mock BAP
-
----
-
-## Usage Examples
-
-### Complete Sandbox Environment
-
-```bash
-# Navigate to the sandbox directory
-cd sandbox
-
-# Start all services (ONIX adapters, mock services, Redis)
-docker-compose up -d
-
-# Check service status
-docker-compose ps
-
-# View logs for all services
-docker-compose logs -f
-
-# View logs for specific service
-docker-compose logs -f onix-bap-plugin
-
-# Stop all services
-docker-compose down
-```
-
-### Standalone ONIX Adapters
-
-#### BAP Integration
-
-```bash
-# Navigate to the onix-adaptor directory
-cd onix-adaptor
-
-# Start BAP services
-docker-compose -f docker-compose-onix-bap-plugin.yml up -d
-
-# Check service status
-docker-compose -f docker-compose-onix-bap-plugin.yml ps
-
-# View logs
-docker-compose -f docker-compose-onix-bap-plugin.yml logs -f onix-bap-plugin
-
-# Stop services
-docker-compose -f docker-compose-onix-bap-plugin.yml down
-```
-
-**BAP Endpoints:**
-- Caller: `http://localhost:8001/bap/caller/{action}`
-- Receiver: `http://localhost:8001/bap/receiver/{action}`
-
-#### BPP Integration
-
-```bash
-# Navigate to the onix-adaptor directory
-cd onix-adaptor
-
-# Start BPP services
-docker-compose -f docker-compose-onix-bpp-plugin.yml up -d
-
-# Check service status
-docker-compose -f docker-compose-onix-bpp-plugin.yml ps
-
-# View logs
-docker-compose -f docker-compose-onix-bpp-plugin.yml logs -f onix-bpp-plugin
-
-# Stop services
-docker-compose -f docker-compose-onix-bpp-plugin.yml down
-```
-
-**BPP Endpoints:**
-- Caller: `http://localhost:8002/bpp/caller/{action}`
-- Receiver: `http://localhost:8002/bpp/receiver/{action}`
-
-### Example API Request
-
-This example works with both the **Complete Sandbox** and **Standalone ONIX Adapters** setups:
-
-```bash
-# Send a discover request from BAP
-# This will be routed to CDS (in sandbox) or your configured CDS endpoint
-curl -X POST http://localhost:8001/bap/caller/discover \
-  -H "Content-Type: application/json" \
-  -d '{
-    "context": {
-      "domain": "ev_charging_network",
-      "version": "1.0.0",
-      "action": "discover",
-      "bap_id": "example-bap.com",
-      "bap_uri": "http://mock-bap:9001",
-      "transaction_id": "550e8400-e29b-41d4-a716-446655440000",
-      "message_id": "550e8400-e29b-41d4-a716-446655440001",
-      "timestamp": "2023-06-15T09:30:00.000Z",
-      "ttl": "PT30S"
-    },
-    "message": {
-      "intent": {
-        "fulfillment": {
-          "start": {
-            "location": {
-              "gps": "12.9715987,77.5945627"
-            }
-          },
-          "end": {
-            "location": {
-              "gps": "12.9715987,77.5945627"
-            }
-          }
-        }
-      }
-    }
-  }'
-```
-
-**Note**: 
-- In the **Complete Sandbox** environment, `bap_uri` can reference `mock-bap:9001` for internal Docker network communication
-- For **Standalone ONIX Adapters**, update `bap_uri` to point to your actual BAP backend service endpoint
-- The request will be automatically routed to CDS (for discover) or BPP (for other actions) based on the routing configuration
-
----
 
 ## Documentation
 
@@ -519,7 +266,7 @@ For issues, questions, or contributions:
 ### Resources
 
 - **ONIX Issues**: [Beckn-One/beckn-onix Issues](https://github.com/Beckn-One/beckn-onix/issues)
-- **ONIX Discussions**: [GitHub Discussions](https://github.com/Beckn-One/beckn-onix/discussions)
+- **UBC EV Sandbox Repo**: [bhim/ubc-ev-sandbox (Discussions & updates)](https://github.com/bhim/ubc-ev-sandbox)
 
 ---
 
