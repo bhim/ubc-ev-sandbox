@@ -155,6 +155,8 @@ services:
     volumes:
       # Mount config file from local directory
       - ./mock-bpp_config.yml:/app/config/config.yaml:ro
+      # Mount request.json file (resolves to /app/config/request.json in container)
+      - ./request.json:/app/config/request.json:ro
     networks:
       - onix-network
     restart: unless-stopped
