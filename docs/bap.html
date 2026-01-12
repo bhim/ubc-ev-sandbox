@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BAP - EV Charging Network API Documentation</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+    <link rel="icon" type="image/png" href="https://unpkg.com/swagger-ui-dist@5/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="https://unpkg.com/swagger-ui-dist@5/favicon-16x16.png" sizes="16x16">
+    <style>
+        html {
+            box-sizing: border-box;
+            overflow-y: scroll;
+        }
+        
+        *,
+        *:before,
+        *:after {
+            box-sizing: inherit;
+        }
+        
+        body {
+            margin: 0;
+            background: #fafafa;
+        }
+        
+        .swagger-ui .topbar {
+            background-color: #1b4332;
+        }
+        
+        .swagger-ui .topbar .download-url-wrapper .select-label {
+            color: #fff;
+        }
+        
+        .swagger-ui .info .title {
+            color: #1b4332;
+        }
+        
+        .swagger-ui .opblock.opblock-post {
+            border-color: #2d6a4f;
+            background: rgba(45, 106, 79, 0.1);
+        }
+        
+        .swagger-ui .opblock.opblock-post .opblock-summary-method {
+            background: #2d6a4f;
+        }
+        
+        .swagger-ui .btn.execute {
+            background-color: #40916c;
+            border-color: #40916c;
+        }
+        
+        .swagger-ui .btn.execute:hover {
+            background-color: #2d6a4f;
+            border-color: #2d6a4f;
+        }
+        
+        .custom-header {
+            background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%);
+            color: white;
+            padding: 20px 40px;
+            text-align: center;
+        }
+        
+        .custom-header h1 {
+            margin: 0 0 10px 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .custom-header p {
+            margin: 0;
+            opacity: 0.9;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 14px;
+        }
+        
+        .custom-header .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        
+        .nav-links {
+            background: #f8f9fa;
+            padding: 10px 40px;
+            border-bottom: 1px solid #dee2e6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        .nav-links a {
+            color: #2d6a4f;
+            text-decoration: none;
+            margin-right: 20px;
+            font-size: 14px;
+        }
+        
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+        
+        .nav-links a.active {
+            font-weight: 600;
+            border-bottom: 2px solid #2d6a4f;
+            padding-bottom: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="custom-header">
+        <h1>⚡ BAP - EV Charging Network API</h1>
+        <p>Beckn Application Platform APIs for EV Charging Services</p>
+        <span class="badge">OpenAPI 3.0.3</span>
+    </div>
+    
+    <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="bap.html" class="active">BAP APIs</a>
+        <a href="bpp.html">BPP APIs</a>
+        <a href="bap.yaml" download>Download BAP Spec (YAML)</a>
+        <a href="bpp.yaml" download>Download BPP Spec (YAML)</a>
+    </div>
+    
+    <div id="swagger-ui"></div>
+    
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js" charset="UTF-8"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js" charset="UTF-8"></script>
+    <script>
+        window.onload = function() {
+            const ui = SwaggerUIBundle({
+                url: "bap.yaml",
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                defaultModelsExpandDepth: 2,
+                defaultModelExpandDepth: 2,
+                docExpansion: "list",
+                filter: true,
+                showExtensions: true,
+                showCommonExtensions: true,
+                tryItOutEnabled: false,
+                supportedSubmitMethods: []
+            });
+            window.ui = ui;
+        };
+    </script>
+</body>
+</html>
