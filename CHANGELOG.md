@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.9.1] - 2026-01-12
+
+### Changed
+
+#### Docker Compose Files
+
+- **`sandbox/docker-compose.yml`**:
+  - Updated ONIX adapter Docker images from `v0.9.0` to `v0.9.1`:
+    - `onix-bap-plugin`: Updated to `manendrapalsingh/onix-adapter:v0.9.1`
+    - `onix-bpp-plugin`: Updated to `manendrapalsingh/onix-adapter:v0.9.1`
+
+- **`onix-adaptor/docker-compose-onix-bap-plugin.yml`**:
+  - Updated Docker image version from `latest` to `v0.9.1`
+
+- **`onix-adaptor/docker-compose-onix-bpp-plugin.yml`**:
+  - Updated Docker image version from `latest` to `v0.9.1`
+
+### Fixed
+
+- **Schema Validator**: Re-enabled schema validation in ONIX adapter v0.9.1
+  - Schema validation now uses remote URL-based validation from Beckn protocol specifications
+  - Validation performed against `https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/api/beckn.yaml`
+
+---
+
 ## [v0.9.0] - 2025-12-31
 
 ### Removed
@@ -72,8 +97,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`sandbox/docker-compose.yml`**:
   - Updated ONIX adapter Docker images from `latest` to `v0.9.0`:
-    - `onix-bap-plugin`: Updated to `manendrapalsingh/onix-adapter:v0.9.0`
-    - `onix-bpp-plugin`: Updated to `manendrapalsingh/onix-adapter:v0.9.0`
+    - `onix-bap-plugin`: Updated to `manendrapalsingh/onix-adapter:v0.9.1`
+    - `onix-bpp-plugin`: Updated to `manendrapalsingh/onix-adapter:v0.9.1`
   - Added metrics port mappings:
     - BAP adapter: `9003:9003`
     - BPP adapter: `9004:9004`

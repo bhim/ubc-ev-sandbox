@@ -52,23 +52,34 @@ modules:
             retry_max: 3
             retry_wait_min: 100ms
             retry_wait_max: 500ms
+         # this is for the dedi registry     
+        # registry:
+        #   id: dediregistry
+        #   config:
+        #     url: http://api.testnet.beckn.one/dedi
+        #     registryName: subscribers.beckn.one
+        #     retry_max: 3
+        #     retry_wait_min: 100ms
+        #     retry_wait_max: 500ms
         keyManager:
           id: simplekeymanager
           config:
             networkParticipant: ev-charging.sandbox1.com
             keyId: bap-key-1
-            signingPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
-            signingPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
-            encrPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
-            encrPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+            signingPrivateKey: kaOxmZvVK0IdfMa+OtKZShKo9KVk4QLgCMn+Ch4QpU4=
+            signingPublicKey: ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4=
+            encrPrivateKey: kaOxmZvVK0IdfMa+OtKZShKo9KVk4QLgCMn+Ch4QpU4=
+            encrPublicKey: ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4=
         cache:
           id: cache
           config:
             addr: redis-onix-bap:6379
-        # schemaValidator:
-        #   id: schemavalidator
-          # config:
-          #   schemaDir: /app/schemas
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/api/beckn.yaml
+            cacheTTL: "3600"
         signValidator:
           id: signvalidator
         router:
@@ -83,7 +94,7 @@ modules:
       steps:
         - validateSign
         - addRoute
-        # - validateSchema
+        - validateSchema
 
   # BAP Caller - Entry point for all requests from BAP
   # Phase 1: Routes search to external CDS for aggregation
@@ -107,23 +118,34 @@ modules:
             retry_max: 3
             retry_wait_min: 100ms
             retry_wait_max: 500ms
+        # this is for the dedi registry     
+        # registry:
+        #   id: dediregistry
+        #   config:
+        #     url: http://api.testnet.beckn.one/dedi
+        #     registryName: subscribers.beckn.one
+        #     retry_max: 3
+        #     retry_wait_min: 100ms
+        #     retry_wait_max: 500ms
         keyManager:
           id: simplekeymanager
           config:
             networkParticipant: ev-charging.sandbox1.com
             keyId: bap-key-1
-            signingPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
-            signingPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
-            encrPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
-            encrPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+            signingPrivateKey: kaOxmZvVK0IdfMa+OtKZShKo9KVk4QLgCMn+Ch4QpU4=
+            signingPublicKey: ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4=
+            encrPrivateKey: kaOxmZvVK0IdfMa+OtKZShKo9KVk4QLgCMn+Ch4QpU4=
+            encrPublicKey: ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4=
         cache:
           id: cache
           config:
             addr: redis-onix-bap:6379
-        # schemaValidator:
-        #   id: schemavalidator
-        #   config:
-        #     schemaDir: /app/schemas
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/api/beckn.yaml
+            cacheTTL: "3600"
         router:
           id: router
           config:
@@ -136,7 +158,7 @@ modules:
               uuidKeys: transaction_id,message_id
               role: bap
       steps:
-        # - validateSchema
+        - validateSchema
         - addRoute
         - sign
 

@@ -53,6 +53,15 @@ modules:
             retry_max: 3
             retry_wait_min: 100ms
             retry_wait_max: 500ms
+        # this is for the dedi registry     
+        # registry:
+        #   id: dediregistry
+        #   config:
+        #     url: http://api.testnet.beckn.one/dedi
+        #     registryName: subscribers.beckn.one
+        #     retry_max: 3
+        #     retry_wait_min: 100ms
+        #     retry_wait_max: 500ms
         keyManager:
           id: simplekeymanager
           config:
@@ -66,10 +75,12 @@ modules:
           id: cache
           config:
             addr: redis-onix-bpp:6379
-        # schemaValidator:
-        #   id: schemavalidator
-        #   config:
-        #     schemaDir: /app/schemas
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/api/beckn.yaml
+            cacheTTL: "3600"
         signValidator:
           id: signvalidator
         router:
@@ -84,7 +95,7 @@ modules:
       steps:
         - validateSign
         - addRoute
-        # - validateSchema
+        - validateSchema
 
   # BPP Caller - Receives responses from backend via HTTP and sends HTTP
   # Phase 1: Receives on_discover from mock-bpp (HTTP) -> sends HTTP to mock-cds
@@ -108,6 +119,15 @@ modules:
             retry_max: 3
             retry_wait_min: 100ms
             retry_wait_max: 500ms
+        # this is for the dedi registry     
+        # registry:
+        #   id: dediregistry
+        #   config:
+        #     url: http://api.testnet.beckn.one/dedi
+        #     registryName: subscribers.beckn.one
+        #     retry_max: 3
+        #     retry_wait_min: 100ms
+        #     retry_wait_max: 500ms
         keyManager:
           id: simplekeymanager
           config:
@@ -121,10 +141,12 @@ modules:
           id: cache
           config:
             addr: redis-onix-bpp:6379
-        # schemaValidator:
-        #   id: schemavalidator
-        #   config:
-        #     schemaDir: /app/schemas
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/api/beckn.yaml
+            cacheTTL: "3600"
         router:
           id: router
           config:
@@ -137,7 +159,7 @@ modules:
               uuidKeys: transaction_id,message_id
               role: bpp
       steps:
-        # - validateSchema
+        - validateSchema
         - addRoute
         - sign
 

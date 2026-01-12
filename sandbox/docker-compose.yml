@@ -8,10 +8,11 @@ services:
     container_name: redis-onix-bap
     ports:
       - "6379:6379"
+    command: redis-server --requirepass your-redis-password
     networks:
       - onix-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "your-redis-password", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -24,10 +25,11 @@ services:
     container_name: redis-onix-bpp
     ports:
       - "6380:6379"
+    command: redis-server --requirepass your-redis-password
     networks:
       - onix-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "your-redis-password", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -35,7 +37,7 @@ services:
 
   # Onix BAP Plugin
   onix-bap-plugin:
-    image: manendrapalsingh/onix-adapter:v0.9.0
+    image: manendrapalsingh/onix-adapter:v0.9.1
     pull_policy: always
     container_name: onix-bap-plugin
     ports:
@@ -60,7 +62,7 @@ services:
 
   # Onix BPP Plugin
   onix-bpp-plugin:
-    image: manendrapalsingh/onix-adapter:v0.9.0
+    image: manendrapalsingh/onix-adapter:v0.9.1
     pull_policy: always
     container_name: onix-bpp-plugin
     ports:

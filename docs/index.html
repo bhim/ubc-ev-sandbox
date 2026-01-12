@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EV Charging Network API Documentation</title>
+    <link rel="icon" type="image/png" href="https://unpkg.com/swagger-ui-dist@5/favicon-32x32.png" sizes="32x32">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 18px;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        }
+        
+        .card-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .card h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .card p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .card-bap {
+            border-top: 4px solid #2d6a4f;
+        }
+        
+        .card-bap h2 {
+            color: #1b4332;
+        }
+        
+        .card-bap .btn {
+            background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);
+        }
+        
+        .card-bpp {
+            border-top: 4px solid #a63c32;
+        }
+        
+        .card-bpp h2 {
+            color: #7b2d26;
+        }
+        
+        .card-bpp .btn {
+            background: linear-gradient(135deg, #7b2d26 0%, #a63c32 100%);
+        }
+        
+        .btn {
+            display: inline-block;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            text-decoration: none;
+            transition: opacity 0.2s ease;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+        }
+        
+        .endpoints {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .endpoints h4 {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        
+        .endpoint-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        
+        .endpoint-tag {
+            background: #f5f5f5;
+            color: #666;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+        
+        .downloads {
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .downloads h3 {
+            color: white;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        
+        .download-links {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .download-link {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.2s ease;
+        }
+        
+        .download-link:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            font-size: 14px;
+        }
+        
+        .footer a {
+            color: white;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ EV Charging Network</h1>
+            <p>Beckn Protocol API Documentation for Electric Vehicle Charging Services - enabling seamless discovery, booking, and management of EV charging infrastructure.</p>
+            <span class="badge">OpenAPI 3.0.3 | Beckn Protocol v2.0</span>
+        </div>
+        
+        <div class="cards">
+            <a href="bap.html" class="card card-bap">
+                <div class="card-icon">🔋</div>
+                <h2>BAP APIs</h2>
+                <p>Beckn Application Platform APIs - Request endpoints for discovering charging stations, initiating sessions, and managing bookings.</p>
+                <span class="btn">View Documentation →</span>
+                <div class="endpoints">
+                    <h4>Key Endpoints</h4>
+                    <div class="endpoint-list">
+                        <span class="endpoint-tag">/discover</span>
+                        <span class="endpoint-tag">/select</span>
+                        <span class="endpoint-tag">/init</span>
+                        <span class="endpoint-tag">/confirm</span>
+                        <span class="endpoint-tag">/update</span>
+                        <span class="endpoint-tag">/track</span>
+                        <span class="endpoint-tag">/cancel</span>
+                        <span class="endpoint-tag">/rating</span>
+                        <span class="endpoint-tag">/support</span>
+                    </div>
+                </div>
+            </a>
+            
+            <a href="bpp.html" class="card card-bpp">
+                <div class="card-icon">🔌</div>
+                <h2>BPP APIs</h2>
+                <p>Beckn Provider Platform Callback APIs - Response endpoints for catalog publishing, order confirmations, and session status updates.</p>
+                <span class="btn">View Documentation →</span>
+                <div class="endpoints">
+                    <h4>Key Endpoints</h4>
+                    <div class="endpoint-list">
+                        <span class="endpoint-tag">/on_discover</span>
+                        <span class="endpoint-tag">/on_select</span>
+                        <span class="endpoint-tag">/on_init</span>
+                        <span class="endpoint-tag">/on_confirm</span>
+                        <span class="endpoint-tag">/on_update</span>
+                        <span class="endpoint-tag">/on_track</span>
+                        <span class="endpoint-tag">/on_cancel</span>
+                        <span class="endpoint-tag">/on_status</span>
+                        <span class="endpoint-tag">/catalog/publish</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+        
+        <div class="downloads">
+            <h3>📥 Download OpenAPI Specifications</h3>
+            <div class="download-links">
+                <a href="bap.yaml" download class="download-link">📄 BAP Spec (YAML)</a>
+                <a href="bpp.yaml" download class="download-link">📄 BPP Spec (YAML)</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Part of the <a href="https://becknprotocol.io" target="_blank">Beckn Protocol</a> ecosystem for open commerce networks.</p>
+        </div>
+    </div>
+</body>
+</html>

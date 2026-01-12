@@ -6,8 +6,8 @@ subscribers:
   - subscriber_id: "ev-charging.sandbox1.com"
     subscriber_uri: "http://onix-bap-plugin:8001/bap/receiver"
     type: "BAP"
-    signing_public_key: "MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU="
-    encr_public_key: "MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU="
+    signing_public_key: "ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4="
+    encr_public_key: "ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4="
     key_id: "bap-key-1"
 
   
