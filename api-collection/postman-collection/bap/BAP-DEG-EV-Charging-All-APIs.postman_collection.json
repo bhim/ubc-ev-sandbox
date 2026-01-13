@@ -5,7 +5,7 @@
 		"description": "Complete collection of all BAP (Buyer App Provider) APIs for EV Charging domain",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "41764752",
-		"_collection_link": "https://manendra-6833.postman.co/workspace/378b8e40-c826-49ef-8213-2862747227c5/collection/41764752-0164aabc-eef5-40c4-bc15-252228916220?action=share&source=collection_link&creator=41764752"
+		"_collection_link": "https://manendra-6833.postman.co/workspace/manendra-Workspace~378b8e40-c826-49ef-8213-2862747227c5/collection/41764752-0164aabc-eef5-40c4-bc15-252228916220?action=share&source=collection_link&creator=41764752"
 	},
 	"item": [
 		{
@@ -62,7 +62,7 @@
 							},
 							"status": "Accepted",
 							"code": 202,
-							"_postman_previewlanguage": "",
+							"_postman_previewlanguage": null,
 							"header": [
 								{
 									"key": "Content-Length",
@@ -133,7 +133,7 @@
 							},
 							"status": "Accepted",
 							"code": 202,
-							"_postman_previewlanguage": "",
+							"_postman_previewlanguage": null,
 							"header": [
 								{
 									"key": "Content-Length",
@@ -204,7 +204,7 @@
 							},
 							"status": "Accepted",
 							"code": 202,
-							"_postman_previewlanguage": "",
+							"_postman_previewlanguage": null,
 							"header": [
 								{
 									"key": "Content-Length",
@@ -275,7 +275,7 @@
 							},
 							"status": "Accepted",
 							"code": 202,
-							"_postman_previewlanguage": "",
+							"_postman_previewlanguage": null,
 							"header": [
 								{
 									"key": "Content-Length",
@@ -346,7 +346,7 @@
 							},
 							"status": "Accepted",
 							"code": 202,
-							"_postman_previewlanguage": "",
+							"_postman_previewlanguage": null,
 							"header": [
 								{
 									"key": "Content-Length",
@@ -417,7 +417,7 @@
 							},
 							"status": "Accepted",
 							"code": 202,
-							"_postman_previewlanguage": "",
+							"_postman_previewlanguage": null,
 							"header": [
 								{
 									"key": "Content-Length",
@@ -488,7 +488,7 @@
 							},
 							"status": "Accepted",
 							"code": 202,
-							"_postman_previewlanguage": "",
+							"_postman_previewlanguage": null,
 							"header": [
 								{
 									"key": "Content-Length",
@@ -559,7 +559,7 @@
 							},
 							"status": "Accepted",
 							"code": 202,
-							"_postman_previewlanguage": "",
+							"_postman_previewlanguage": null,
 							"header": [
 								{
 									"key": "Content-Length",
@@ -621,7 +621,7 @@
 							},
 							"status": "Accepted",
 							"code": 202,
-							"_postman_previewlanguage": "",
+							"_postman_previewlanguage": null,
 							"header": [
 								{
 									"key": "Content-Length",
@@ -754,7 +754,7 @@
 							},
 							"status": "OK",
 							"code": 200,
-							"_postman_previewlanguage": "",
+							"_postman_previewlanguage": null,
 							"header": [
 								{
 									"key": "Content-Length",
@@ -827,7 +827,7 @@
 					},
 					"status": "OK",
 					"code": 200,
-					"_postman_previewlanguage": "",
+					"_postman_previewlanguage": null,
 					"header": [
 						{
 							"key": "Content-Length",
@@ -898,7 +898,7 @@
 					},
 					"status": "OK",
 					"code": 200,
-					"_postman_previewlanguage": "",
+					"_postman_previewlanguage": null,
 					"header": [
 						{
 							"key": "Content-Length",
@@ -1036,7 +1036,7 @@
 					},
 					"status": "OK",
 					"code": 200,
-					"_postman_previewlanguage": "",
+					"_postman_previewlanguage": null,
 					"header": [
 						{
 							"key": "Content-Length",
@@ -1117,7 +1117,7 @@
 					},
 					"status": "OK",
 					"code": 200,
-					"_postman_previewlanguage": "",
+					"_postman_previewlanguage": null,
 					"header": [
 						{
 							"key": "Content-Length",
@@ -1198,7 +1198,7 @@
 					},
 					"status": "OK",
 					"code": 200,
-					"_postman_previewlanguage": "",
+					"_postman_previewlanguage": null,
 					"header": [
 						{
 							"key": "Content-Length",

@@ -5,7 +5,7 @@
 		"description": "Complete collection of all BPP (Buyer Platform Provider) APIs for EV Charging domain",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "41764752",
-		"_collection_link": "https://manendra-6833.postman.co/workspace/378b8e40-c826-49ef-8213-2862747227c5/collection/41764752-c6d49430-7f77-4796-b7dc-1b5e3eeb30e2?action=share&source=collection_link&creator=41764752"
+		"_collection_link": "https://manendra-6833.postman.co/workspace/manendra-Workspace~378b8e40-c826-49ef-8213-2862747227c5/collection/41764752-c6d49430-7f77-4796-b7dc-1b5e3eeb30e2?action=share&source=collection_link&creator=41764752"
 	},
 	"item": [
 		{
@@ -619,7 +619,57 @@
 					]
 				}
 			},
-			"response": []
+			"response": [
+				{
+					"name": "on_track",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"context\": {\n    \"version\": \"{{version}}\",\n    \"action\": \"on_track\",\n    \"domain\": \"{{domain}}\",\n    \"bpp_id\": \"{{bpp_id}}\",\n    \"bpp_uri\": \"{{bpp_uri}}\",\n    \"transaction_id\": \"2b4d69aa-22e4-4c78-9f56-5a7b9e2b2002\",\n    \"message_id\": \"6ace310b-6440-4421-a2ed-b484c7548bd5\",\n    \"timestamp\": \"2025-01-27T17:00:40.065Z\",\n    \"ttl\": \"PT30S\",\n    \"bap_id\": \"{{bap_id}}\",\n    \"bap_uri\": \"{{bap_uri}}\"\n  },\n \"message\": {\n    \"order\": {\n      \"@context\": \"https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schema/core/v2/context.jsonld\",\n      \"@type\": \"beckn:Order\",\n      \"beckn:id\": \"order-ev-charging-001\",\n      \"beckn:orderStatus\": \"INPROGRESS\",\n      \"beckn:seller\": \"cpo1.com\",\n      \"beckn:buyer\": {\n        \"@context\": \"https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schema/core/v2/context.jsonld\",\n        \"@type\": \"beckn:Buyer\",\n        \"beckn:id\": \"user-123\",\n        \"beckn:buyerAttributes\": {\n          \"@context\": \"https://raw.githubusercontent.com/bhim/ubc-tsd/main/beckn-schemas/UBCExtensions/v1/context.jsonld\",\n          \"@type\": \"BuyerUPI\",\n          \"vpa\": \"ravikumar@upi\"\n        }\n      },\n      \"beckn:orderItems\": [\n        {\n          \"beckn:orderedItem\": \"IND*ecopower-charging*cs-01*IN*ECO*BTM*01*CCS2*A*CCS2-A\"\n        }\n      ],\n      \"beckn:fulfillment\": {\n        \"@context\": \"https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schema/core/v2/context.jsonld\",\n        \"@type\": \"beckn:Fulfillment\",\n        \"beckn:id\": \"fulfillment-001\",\n        \"beckn:mode\": \"RESERVATION\",\n        \"trackingAction\": {\n          \"@type\": \"beckn:TrackAction\",\n          \"target\": {\n            \"@type\": \"schema:EntryPoint\",\n            \"url\": \"https://track.bluechargenet-aggregator.io/session/SESSION-9876543210\"\n          }\n        },\n        \"beckn:deliveryAttributes\": {\n          \"@context\": \"https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schema/EvChargingSession/v1/context.jsonld\",\n          \"@type\": \"ChargingSession\",\n          \"sessionStatus\": \"ACTIVE\",\n          \"chargingTelemetry\": [\n            {\n              \"eventTime\": \"2025-01-27T17:00:00Z\",\n              \"metrics\": [\n                {\n                  \"name\": \"STATE_OF_CHARGE\",\n                  \"value\": 62.5,\n                  \"unitCode\": \"PERCENTAGE\"\n                },\n                {\n                  \"name\": \"POWER\",\n                  \"value\": 18.4,\n                  \"unitCode\": \"KWH\"\n                },\n                {\n                  \"name\": \"ENERGY\",\n                  \"value\": 10.2,\n                  \"unitCode\": \"KW\"\n                },\n                {\n                  \"name\": \"VOLTAGE\",\n                  \"value\": 392,\n                  \"unitCode\": \"VLT\"\n                },\n                {\n                  \"name\": \"CURRENT\",\n                  \"value\": 47.0,\n                  \"unitCode\": \"AMP\"\n                }\n              ]\n            },\n            {\n              \"eventTime\": \"2025-01-27T17:05:00Z\",\n              \"metrics\": [\n                {\n                  \"name\": \"STATE_OF_CHARGE\",\n                  \"value\": 65.0,\n                  \"unitCode\": \"PERCENTAGE\"\n                },\n                {\n                  \"name\": \"POWER\",\n                  \"value\": 17.1,\n                  \"unitCode\": \"KWH\"\n                },\n                {\n                  \"name\": \"ENERGY\",\n                  \"value\": 11.1,\n                  \"unitCode\": \"KW\"\n                },\n                {\n                  \"name\": \"VOLTAGE\",\n                  \"value\": 388,\n                  \"unitCode\": \"VLT\"\n                },\n                {\n                  \"name\": \"CURRENT\",\n                  \"value\": 44.2,\n                  \"unitCode\": \"AMP\"\n                }\n              ]\n            }\n          ]\n        }\n      }\n    }\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{on_track_url}}/",
+							"host": [
+								"{{on_track_url}}"
+							],
+							"path": [
+								""
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "",
+					"header": [
+						{
+							"key": "Content-Length",
+							"value": "37"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Date",
+							"value": "Tue, 13 Jan 2026 06:26:37 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"message\": {\n        \"ack\": {\n            \"status\": \"ACK\"\n        }\n    }\n}"
+				}
+			]
 		},
 		{
 			"name": "on_rating",
@@ -695,6 +745,55 @@
 						{
 							"key": "Date",
 							"value": "Mon, 12 Jan 2026 08:25:10 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"message\": {\n        \"ack\": {\n            \"status\": \"ACK\"\n        }\n    }\n}"
+				},
+				{
+					"name": "on_rating",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"context\": {\n    \"version\": \"{{version}}\",\n    \"action\": \"on_rating\",\n    \"domain\": \"{{domain}}\",\n    \"bpp_id\": \"{{bpp_id}}\",\n    \"bpp_uri\": \"{{bpp_uri}}\",\n    \"transaction_id\": \"2b4d69aa-22e4-4c78-9f56-5a7b9e2b2002\",\n    \"message_id\": \"89ee20fe-b592-48b0-a5c5-e38f6b90e569\",\n    \"timestamp\": \"2025-01-27T12:00:30Z\",\n    \"ttl\": \"PT30S\",\n    \"bap_id\": \"{{bap_id}}\",\n    \"bap_uri\": \"{{bap_uri}}\"\n  },\n  \"message\": {\n    \"received\": true,\n    \"feedbackForm\": {\n      \"@context\": \"https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schema/core/v2/context.jsonld\",\n      \"@type\": \"beckn:Form\",\n      \"url\": \"https://example-bpp.com/feedback/portal\",\n      \"mime_type\": \"application/xml\",\n      \"submission_id\": \"feedback-123e4567-e89b-12d3-a456-426614174000\"\n    }\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{on_rating_url}}/",
+							"host": [
+								"{{on_rating_url}}"
+							],
+							"path": [
+								""
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "",
+					"header": [
+						{
+							"key": "Content-Length",
+							"value": "37"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Date",
+							"value": "Tue, 13 Jan 2026 06:26:29 GMT"
 						}
 					],
 					"cookie": [],
