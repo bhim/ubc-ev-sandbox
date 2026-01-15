@@ -45,7 +45,8 @@ Key-value pairs for BAP and BPP ONIX adapters.
 | `plugins.keyManager.config.encrPrivateKey` | `kaOxmZvVK0IdfMa+OtKZShKo9KVk4QLgCMn+Ch4QpU4=` | Private key for encryption |
 | `plugins.keyManager.config.encrPublicKey` | `ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4=` | Public key for encryption |
 | `plugins.cache.id` | `cache` | Cache plugin identifier |
-| `plugins.cache.config.addr` | `redis-onix-bap:6379` | Redis address for caching |
+| `plugins.cache.config.addr` | `redis.example.com:6380` | Redis address for caching |
+| `plugins.cache.config.use_tls` | `true` | Enable TLS for Redis connection |
 | `plugins.schemaValidator.id` | `schemav2validator` | Schema validator plugin identifier |
 | `plugins.schemaValidator.config.type` | `url` | Schema source type |
 | `plugins.schemaValidator.config.location` | `https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/api/beckn.yaml` | Beckn schema URL |
@@ -133,7 +134,8 @@ Key-value pairs for BAP and BPP ONIX adapters.
 | `plugins.keyManager.config.encrPrivateKey` | `HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=` | Private key for encryption |
 | `plugins.keyManager.config.encrPublicKey` | `2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=` | Public key for encryption |
 | `plugins.cache.id` | `cache` | Cache plugin identifier |
-| `plugins.cache.config.addr` | `redis-onix-bpp:6379` | Redis address for caching |
+| `plugins.cache.config.addr` | `redis.example.com:6380` | Redis address for caching |
+| `plugins.cache.config.use_tls` | `true` | Enable TLS for Redis connection |
 | `plugins.schemaValidator.id` | `schemav2validator` | Schema validator plugin identifier |
 | `plugins.schemaValidator.config.type` | `url` | Schema source type |
 | `plugins.schemaValidator.config.location` | `https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/api/beckn.yaml` | Beckn schema URL |

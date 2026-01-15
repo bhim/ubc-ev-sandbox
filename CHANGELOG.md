@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.9.2] - 2026-01-13
+
+### Changed
+
+#### Docker Compose Files
+
+- **`onix-adaptor/docker-compose-onix-bap-plugin.yml`**:
+  - Updated Docker image version from `v0.9.1` to `v0.9.2`
+    - `onix-bap-plugin`: Updated to `manendrapalsingh/onix-adapter:v0.9.2`
+
+- **`onix-adaptor/docker-compose-onix-bpp-plugin.yml`**:
+  - Updated Docker image version from `v0.9.1` to `v0.9.2`
+    - `onix-bpp-plugin`: Updated to `manendrapalsingh/onix-adapter:v0.9.2`
+
+#### ONIX Adapter Configurations
+
+- **`onix-adaptor/config/onix-bap/adapter.yaml`**:
+  - Updated schema validator configuration:
+    - Changed schema location from `protocol-specifications-new/refs/heads/main` to `protocol-specifications-v2/refs/heads/core-v2.0.0-rc`
+    - Updated URL: `https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml`
+    - Applied to both `bapTxnReceiver` and `bapTxnCaller` modules
+
+- **`onix-adaptor/config/onix-bpp/adapter.yaml`**:
+  - Updated schema validator configuration:
+    - Changed schema location from `protocol-specifications-new/refs/heads/main` to `protocol-specifications-v2/refs/heads/core-v2.0.0-rc`
+    - Updated URL: `https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml`
+    - Applied to both `bppTxnReceiver` and `bppTxnCaller` modules
+
+#### Configuration Documentation
+
+- **`config.md`**:
+  - Updated cache configuration documentation for both BAP and BPP adapters:
+    - Updated Redis address from local Docker service names to `redis.example.com:6380`
+    - Added `use_tls: "true"` configuration option for secure Redis connections
+    - Documented TLS support for cache plugin configuration
+
+### Added
+
+- **Redis TLS Support**: Added TLS configuration option for Redis cache connections
+  - Enables secure connections to Redis instances using TLS/SSL
+  - Configurable via `plugins.cache.config.use_tls` setting
+  - Supports external Redis services with TLS enabled
+
 ## [v0.9.1] - 2026-01-12
 
 ### Changed
