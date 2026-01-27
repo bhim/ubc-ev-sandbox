@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  mock-bpp:
+    image: manendrapalsingh/mock-bpp:latest
+    container_name: mock-bpp
+    ports:
+      - "9002:9002"
+    volumes:
+      # Mount config file from local directory
+      - ./config.yaml:/app/config/config.yaml:ro
+    environment:
+      # Optional: Override config file path if needed
+      # CONFIG_FILE: /app/config/config.yaml
+    networks:
+      - mock-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  mock-network:
+    driver: bridge
+

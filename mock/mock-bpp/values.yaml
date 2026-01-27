@@ -1,0 +1,65 @@
+# Default values for mock-bpp
+fullnameOverride: mock-bpp
+
+image:
+  repository: manendrapalsingh/mock-bpp
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 9002
+  targetPort: 9002
+
+config:
+  server:
+    port: ":9002"
+  
+  defaults:
+    version: "1.0.0"
+    country_code: "IND"
+    city_code: "std:080"
+    bpp_id: "ev-charging.sandbox2.com"
+    bpp_uri: "http://onix-bpp-service:8002"
+  
+  callback:
+    enabled: true
+    timeout: 100
+    response_file: "./request.json"
+    callback_uri: "http://onix-bpp-service:8002"
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "200m"
+
+# Health probe configuration
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+

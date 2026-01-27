@@ -1,0 +1,80 @@
+version: '3.9'
+
+services:
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    pull_policy: always
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+      RABBITMQ_USERNAME: admin
+      RABBITMQ_PASSWORD: admin
+    networks:
+      - onix-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis for onix-bap-plugin-rabbitmq
+  redis-bap:
+    image: redis:alpine
+    pull_policy: always
+    container_name: redis-bap
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass your-redis-password
+    networks:
+      - onix-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "your-redis-password", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Onix BAP RabbitMQ Plugin
+  onix-bap-plugin-rabbitmq:
+    image: manendrapalsingh/onix-adapter:v0.9.2
+    pull_policy: always
+    container_name: onix-bap-plugin-rabbitmq
+    ports:
+      - "8001:8001"  # HTTP port for bapTxnReceiver endpoint
+    volumes:
+      # Mount config directory (writable for symlink creation, but original files won't be modified)
+      - ${CONFIG_PATH:-./config}/onix-bap:/app/config
+      # Mount schema directory (read-only)
+      - ../../schemas:/app/schemas:ro
+    environment:
+      - CONFIG_FILE=/app/config/adapter.yaml
+      - REDIS_PASSWORD=your-redis-password
+      - RABBITMQ_USERNAME=admin
+      - RABBITMQ_PASSWORD=admin
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis-bap:
+        condition: service_healthy
+    networks:
+      - onix-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+networks:
+  onix-network:
+    driver: bridge
+

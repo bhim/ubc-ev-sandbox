@@ -1,0 +1,189 @@
+appName: "bpp-ev-charging"
+log:
+  level: debug
+  destinations:
+    - type: stdout
+  contextKeys:
+    - transaction_id
+    - message_id
+    - subscriber_id
+    - module_id
+
+# HTTP configuration is required for bppTxnReceiver to receive HTTP requests from BAP-ONIX plugin
+# The bppTxnReceiver module uses handler type "std" which requires HTTP server
+http:
+  port: 8002
+  timeout:
+    read: 30
+    write: 30
+    idle: 30
+
+pluginManager:
+  root: /app/plugins
+
+plugins:
+  otelsetup:
+    id: otelsetup
+    config:
+      serviceName: "beckn-onix"
+      serviceVersion: "1.0.0"
+      enableMetrics: "true"
+      environment: "development"
+      metricsPort: "9004"
+
+modules:
+  # BPP Receiver - Receives HTTP requests from BAP-ONIX and publishes to BPP Backend
+  # Phase 1: Receives discover from CDS
+  # Phase 2+: Receives other requests (select, init, confirm, etc.) from BAP-ONIX
+  # Publishes messages to BPP Backend via RabbitMQ
+  - name: bppTxnReceiver
+    path: /bpp/receiver/
+    handler:
+      type: std
+      role: bpp
+      subscriberId: ev-charging.sandbox2.com
+      httpClientConfig:
+        maxIdleConns: 1000
+        maxIdleConnsPerHost: 200
+        idleConnTimeout: 300s
+        responseHeaderTimeout: 5s
+      plugins:
+        registry:
+          id: registry
+          config:
+            url: http://mock-registry:3030
+            retry_max: 3
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+        keyManager:
+          id: simplekeymanager
+          config:
+            networkParticipant: ev-charging.sandbox2.com
+            keyId: bpp-key-1
+            signingPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+            signingPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+            encrPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+            encrPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+        cache:
+          id: cache
+          config:
+            addr: redis-bpp:6379
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
+            cacheTTL: "3600"
+        signValidator:
+          id: signvalidator
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/bppTxnReciever-routing.yaml
+        publisher:
+          id: publisher
+          config:
+            addr: rabbitmq:5672
+            exchange: beckn_exchange
+            durable: "true"
+            username: guest
+            password: guest
+        middleware:
+          - id: reqpreprocessor
+            config:
+              uuidKeys: transaction_id,message_id
+              role: bpp
+      steps:
+        - validateSign
+        - validateSchema
+        - addRoute
+
+  # BPP Caller - Consumes callbacks from BPP Backend via RabbitMQ
+  # Phase 1: Routes on_discover response to CDS
+  # Phase 2+: Routes other responses to BAP-ONIX
+  - name: bppTxnCaller
+    path: ""  # path is not used for queue handlers
+    handler:
+      type: queue
+      role: bpp
+      subscriberId: ev-charging.sandbox2.com
+      httpClientConfig:
+        maxIdleConns: 1000
+        maxIdleConnsPerHost: 200
+        idleConnTimeout: 300s
+        responseHeaderTimeout: 5s
+      plugins:
+        registry:
+          id: registry
+          config:
+            url: http://mock-registry:3030
+            retry_max: 3
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+        keyManager:
+          id: simplekeymanager
+          config:
+            networkParticipant: ev-charging.sandbox2.com
+            keyId: bpp-key-1
+            signingPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+            signingPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+            encrPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+            encrPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+        cache:
+          id: cache
+          config:
+            addr: redis-bpp:6379
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
+            cacheTTL: "3600"
+        consumer:
+          id: consumer
+          config:
+            subscriberId: ev-charging.sandbox2.com
+            role: bpp
+            consumerType: rabbitmq
+            consumerThreads: "2"
+            consumer.id: rabbitmqconsumer
+            consumer.addr: rabbitmq:5672
+            consumer.exchange: beckn_exchange
+            # Routing keys for callbacks from BPP Backend (bpp.on_discover, bpp.on_select, etc.)
+            consumer.routingKeys: "bpp.on_discover,bpp.on_select,bpp.on_init,bpp.on_confirm,bpp.on_status,bpp.on_track,bpp.on_cancel,bpp.on_update,bpp.on_rating,bpp.on_support,bpp.catalog_publish,bpp.on_catalog_publish"
+            consumer.queueName: "bpp_caller_queue"
+            consumer.durable: "true"
+            consumer.autoDelete: "false"
+            consumer.exclusive: "false"
+            consumer.noWait: "false"
+            consumer.autoAck: "false"
+            consumer.prefetchCount: "10"
+            consumer.maxRetry: "3"
+            consumer.queueArgs: ""
+            consumer.username: guest
+            consumer.password: guest
+            steps: '["addRoute", "validateSchema", "sign"]'
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/bppTxnCaller-routing.yaml
+        publisher:
+          id: publisher
+          config:
+            addr: rabbitmq:5672
+            exchange: beckn_exchange
+            durable: "true"
+            username: guest
+            password: guest
+        signer:
+          id: signer
+        middleware:
+          - id: reqpreprocessor
+            config:
+              uuidKeys: transaction_id,message_id
+              role: bpp
+      steps:
+        - validateSchema
+        - addRoute
+        - sign
+

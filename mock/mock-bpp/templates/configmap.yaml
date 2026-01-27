@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mock-bpp.fullname" . }}-config
+  labels:
+    {{- include "mock-bpp.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+{{ toYaml .Values.config | indent 4 }}
+  request.json: |
+{{ .Files.Get "request.json" | indent 4 }}
+

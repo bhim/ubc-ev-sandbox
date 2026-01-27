@@ -1,0 +1,388 @@
+# BPP-specific values for onix-kafka
+#
+# Production Deployment:
+# 1. Create Kubernetes secret before deployment:
+#    kubectl create secret generic onix-bpp-kafka-secrets \
+#      --from-literal=signingPrivateKey=... \
+#      --from-literal=signingPublicKey=... \
+#      --from-literal=encrPrivateKey=... \
+#      --from-literal=encrPublicKey=... \
+#      --from-literal=subscriberId=... \
+#      --from-literal=networkParticipant=... \
+#      --from-literal=keyId=... \
+#      --from-literal=redisPassword=...
+#
+# 2. Deploy with secrets enabled:
+#    helm install onix-bpp-kafka ./helm-kafka \
+#      -f ./helm-kafka/values-bpp.yaml \
+#      --set secrets.enabled=true \
+#      --set secrets.secretName=onix-bpp-kafka-secrets
+#
+# 3. In production, only plugin-related services are deployed:
+#    - onix-adapter (BPP)
+#    - Redis
+#    - NO Kafka (shared from BAP release)
+#    - NO Kafka UI (shared from BAP release)
+
+# Override fullname to ensure consistent naming with BAP deployment
+# This ensures BPP can connect to the shared Kafka service "onix-kafka"
+fullnameOverride: "onix"
+
+component: bpp
+
+# Secret management configuration
+secrets:
+  enabled: false  # Set to true in production
+  secretName: ""  # Kubernetes secret name (e.g., "onix-bpp-kafka-secrets")
+  # If secretName is empty or secret doesn't exist, use hardcoded values
+
+image:
+  repository: manendrapalsingh/onix-adapter
+  tag: v0.9.2
+
+service:
+  port: 8002
+  targetPort: 8002
+
+# Disable Kafka, Kafka UI, and mock services for BPP release
+# These should be deployed only once (with BAP release) and shared
+kafka:
+  enabled: false
+  # Use the Kafka broker from BAP release (shared Kafka instance)
+  # With fullnameOverride="onix", the Kafka service is named "onix-kafka:9092"
+  # Leave blank to let the template compute the correct broker address
+  broker: ""
+
+kafkaUI:
+  enabled: false
+
+redis:
+  enabled: true
+  # Redis host - if not set, will default to <release-name>-onix-kafka-redis-bpp
+  # Set this if you want to use a different Redis service name or external Redis
+  # host: ""
+  service:
+    port: 6379
+
+# Note: CONFIG_FILE is set automatically in the deployment template
+# No need to set it here to avoid duplicates
+env: []
+
+# BPP-specific keys
+# NOTE: In production, these values should come from Kubernetes secrets
+# These are fallback values for development only
+config:
+  keys:
+    signingPrivateKey: "HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4="
+    signingPublicKey: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+    encrPrivateKey: "HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4="
+    encrPublicKey: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="    # BPP encryption public key (dev only)
+    redisPassword: your-redis-password  # Redis password (must match redis.password)
+  
+  adapter: |
+    appName: "bpp-ev-charging"
+    
+    log:
+      level: debug
+      destinations:
+        - type: stdout
+      contextKeys:
+        - transaction_id
+        - message_id
+        - subscriber_id
+        - module_id
+    
+    # HTTP configuration is required for bppTxnReceiver to receive HTTP requests from BAP-ONIX plugin
+    # The bppTxnReceiver module uses handler type "std" which requires HTTP server
+    http:
+      port: 8002
+      timeout:
+        read: 30
+        write: 30
+        idle: 30
+    
+    pluginManager:
+      root: /app/plugins
+    
+    plugins:
+      otelsetup:
+        id: otelsetup
+        config:
+          serviceName: "beckn-onix"
+          serviceVersion: "1.0.0"
+          enableMetrics: "true"
+          environment: "development"
+          metricsPort: "9004"
+    
+    modules:
+      # BPP Receiver - Receives HTTP requests from BAP-ONIX and publishes to BPP Backend via Kafka
+      # Phase 1: Receives discover from CDS
+      # Phase 2+: Receives other requests (select, init, confirm, etc.) from BAP-ONIX
+      - name: bppTxnReceiver
+        path: /bpp/receiver/
+        handler:
+          type: std
+          role: bpp
+          subscriberId: ev-charging.sandbox2.com
+          httpClientConfig:
+            maxIdleConns: 1000
+            maxIdleConnsPerHost: 200
+            idleConnTimeout: 300s
+            responseHeaderTimeout: 5s
+          plugins:
+            registry:
+              id: registry
+              config:
+                url: http://mock-registry:3030
+                retry_max: 3
+                retry_wait_min: 100ms
+                retry_wait_max: 500ms
+            keyManager:
+              id: simplekeymanager
+              config:
+                networkParticipant: ev-charging.sandbox2.com
+                keyId: bpp-key-1
+                signingPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+                signingPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+                encrPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+                encrPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+            cache:
+              id: cache
+              config:
+                addr: redis-bpp:6379
+            schemaValidator:
+              id: schemav2validator
+              config:
+                type: url
+                location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
+                cacheTTL: "3600"
+            signValidator:
+              id: signvalidator
+            router:
+              id: router
+              config:
+                routingConfig: /app/config/bppTxnReciever-routing.yaml
+            publisher:
+              id: publisher
+              config:
+                type: kafka
+                brokers: kafka:9092
+                topic: bpp.default
+                compressionCodec: snappy
+                acks: all
+                admin.enabled: "on"
+                admin.topicSpecs: '[{"topic":"bpp.discover","numPartitions":1,"replicationFactor":1},{"topic":"bpp.select","numPartitions":1,"replicationFactor":1},{"topic":"bpp.init","numPartitions":1,"replicationFactor":1},{"topic":"bpp.confirm","numPartitions":1,"replicationFactor":1},{"topic":"bpp.status","numPartitions":1,"replicationFactor":1},{"topic":"bpp.track","numPartitions":1,"replicationFactor":1},{"topic":"bpp.cancel","numPartitions":1,"replicationFactor":1},{"topic":"bpp.update","numPartitions":1,"replicationFactor":1},{"topic":"bpp.rating","numPartitions":1,"replicationFactor":1},{"topic":"bpp.support","numPartitions":1,"replicationFactor":1},{"topic":"bpp.default","numPartitions":1,"replicationFactor":1}]'
+            middleware:
+              - id: reqpreprocessor
+                config:
+                  uuidKeys: transaction_id,message_id
+                  role: bpp
+          steps:
+            - validateSign
+            - validateSchema
+            - addRoute
+    
+      # BPP Caller - Consumes callbacks from BPP Backend via Kafka and routes them outward
+      # Phase 1: Routes on_discover response to CDS
+      # Phase 2+: Routes other responses to BAP-ONIX
+      - name: bppTxnCaller
+        path: ""  # path is not used for queue handlers
+        handler:
+          type: queue
+          role: bpp
+          subscriberId: ev-charging.sandbox2.com
+          httpClientConfig:
+            maxIdleConns: 1000
+            maxIdleConnsPerHost: 200
+            idleConnTimeout: 300s
+            responseHeaderTimeout: 5s
+          plugins:
+            registry:
+              id: registry
+              config:
+                url: http://mock-registry:3030
+                retry_max: 3
+                retry_wait_min: 100ms
+                retry_wait_max: 500ms
+            keyManager:
+              id: simplekeymanager
+              config:
+                networkParticipant: ev-charging.sandbox2.com
+                keyId: bpp-key-1
+                signingPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+                signingPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+                encrPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+                encrPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+            cache:
+              id: cache
+              config:
+                addr: redis-bpp:6379
+            schemaValidator:
+              id: schemav2validator
+              config:
+                type: url
+                location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
+                cacheTTL: "3600"
+            consumer:
+              id: consumer
+              config:
+                subscriberId: ev-charging.sandbox2.com
+                role: bpp
+                consumerType: kafka
+                consumerThreads: "2"
+                consumer.id: kafkaconsumer
+                consumer.brokers: kafka:9092
+                consumer.topics: "bpp.on_discover,bpp.on_select,bpp.on_init,bpp.on_confirm,bpp.on_status,bpp.on_track,bpp.on_cancel,bpp.on_update,bpp.on_rating,bpp.on_support"
+                consumer.groupId: bpp_caller_group
+                consumer.autoCommit: "false"
+                consumer.maxRetry: "3"
+                consumer.useTLS: "false"
+                consumer.tlsInsecureSkipVerify: "false"
+                consumer.tlsCAFile: ""
+                consumer.tlsCertFile: ""
+                consumer.tlsKeyFile: ""
+                consumer.dialTimeout: "10s"
+                consumer.sessionTimeout: "30s"
+                consumer.heartbeatInterval: "3s"
+                consumer.maxPollInterval: "5m"
+                consumer.maxPollRecords: "500"
+                consumer.rebalanceTimeout: "30s"
+                consumer.startOffset: "latest"
+                consumer.readBackoffMin: "100ms"
+                consumer.readBackoffMax: "1s"
+                consumer.admin.enabled: "on"
+                consumer.admin.topicSpecs: '[{"topic":"bpp.on_discover","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_select","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_init","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_confirm","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_status","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_track","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_cancel","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_update","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_rating","numPartitions":1,"replicationFactor":1},{"topic":"bpp.on_support","numPartitions":1,"replicationFactor":1}]'
+                steps: '["addRoute", "validateSchema", "sign"]'
+            router:
+              id: router
+              config:
+                routingConfig: /app/config/bppTxnCaller-routing.yaml
+            signer:
+              id: signer
+            middleware:
+              - id: reqpreprocessor
+                config:
+                  uuidKeys: transaction_id,message_id
+                  role: bpp
+          steps:
+            - validateSchema
+            - addRoute
+            - sign
+
+  routing:
+    caller: |
+      # ONIX BPP Caller Routing Configuration (Kafka)
+      
+      routingRules:
+        # Phase 1: on_discover response routed to CDS
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://mock-cds:8082/csd
+            excludeAction: false
+          endpoints:
+            - on_discover
+      
+        # Phase 2+: Other callbacks to BAP-ONIX
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: bap
+          target: {}
+          endpoints:
+            - on_select
+            - on_init
+            - on_confirm
+            - on_status
+            - on_track
+            - on_cancel
+            - on_update
+            - on_rating
+            - on_support
+    
+    receiver: |
+      # ONIX BPP Receiver Routing Configuration (Kafka)
+      
+      routingRules:
+        # Discover requests to BPP Backend via Kafka
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.discover
+          endpoints:
+            - discover
+      
+        # Other requests to BPP Backend via Kafka
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.select
+          endpoints:
+            - select
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.init
+          endpoints:
+            - init
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.confirm
+          endpoints:
+            - confirm
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.status
+          endpoints:
+            - status
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.track
+          endpoints:
+            - track
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.cancel
+          endpoints:
+            - cancel
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.update
+          endpoints:
+            - update
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.rating
+          endpoints:
+            - rating
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.support
+          endpoints:
+            - support
+

@@ -1,0 +1,115 @@
+{{- if .Values.rabbitmq.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "onix-rabbitmq.fullname" . }}-rabbitmq
+  labels:
+    {{- include "onix-rabbitmq.labels" . | nindent 4 }}
+    component: rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "onix-rabbitmq.selectorLabels" . | nindent 6 }}
+      component: rabbitmq
+  template:
+    metadata:
+      labels:
+        {{- include "onix-rabbitmq.selectorLabels" . | nindent 8 }}
+        component: rabbitmq
+    spec:
+      containers:
+      - name: rabbitmq
+        image: "{{ .Values.rabbitmq.image.repository }}:{{ .Values.rabbitmq.image.tag }}"
+        ports:
+        - name: amqp
+          containerPort: {{ .Values.rabbitmq.service.amqpPort }}
+          protocol: TCP
+        - name: management
+          containerPort: {{ .Values.rabbitmq.service.managementPort }}
+          protocol: TCP
+        env:
+        - name: RABBITMQ_DEFAULT_USER
+          value: {{ .Values.rabbitmq.username | quote }}
+        - name: RABBITMQ_DEFAULT_PASS
+          value: {{ .Values.rabbitmq.password | quote }}
+        - name: RABBITMQ_USERNAME
+          value: {{ .Values.rabbitmq.username | quote }}
+        - name: RABBITMQ_PASSWORD
+          value: {{ .Values.rabbitmq.password | quote }}
+        {{- if .Values.rabbitmq.resources }}
+        resources:
+          {{- toYaml .Values.rabbitmq.resources | nindent 10 }}
+        {{- end }}
+        livenessProbe:
+          exec:
+            command:
+            - rabbitmq-diagnostics
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - rabbitmq-diagnostics
+            - ping
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 3
+        {{- if .Values.rabbitmq.persistence.enabled }}
+        volumeMounts:
+        - name: rabbitmq-data
+          mountPath: /var/lib/rabbitmq
+        {{- end }}
+      {{- if .Values.rabbitmq.persistence.enabled }}
+      volumes:
+      - name: rabbitmq-data
+        persistentVolumeClaim:
+          claimName: {{ include "onix-rabbitmq.fullname" . }}-rabbitmq-pvc
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "onix-rabbitmq.fullname" . }}-rabbitmq
+  labels:
+    {{- include "onix-rabbitmq.labels" . | nindent 4 }}
+    component: rabbitmq
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.rabbitmq.service.amqpPort }}
+      targetPort: amqp
+      protocol: TCP
+      name: amqp
+    - port: {{ .Values.rabbitmq.service.managementPort }}
+      targetPort: management
+      protocol: TCP
+      name: management
+  selector:
+    {{- include "onix-rabbitmq.selectorLabels" . | nindent 4 }}
+    component: rabbitmq
+---
+{{- if .Values.rabbitmq.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "onix-rabbitmq.fullname" . }}-rabbitmq-pvc
+  labels:
+    {{- include "onix-rabbitmq.labels" . | nindent 4 }}
+    component: rabbitmq
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.rabbitmq.persistence.size }}
+  {{- if .Values.rabbitmq.persistence.storageClass }}
+  storageClassName: {{ .Values.rabbitmq.persistence.storageClass }}
+  {{- end }}
+{{- end }}
+{{- end }}
+

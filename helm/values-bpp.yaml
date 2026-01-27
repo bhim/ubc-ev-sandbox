@@ -1,0 +1,244 @@
+# BPP-specific values for onix-api-monolithic
+component: bpp
+
+# Secret management configuration
+secrets:
+  enabled: false  # Set to true in production
+  secretName: ""  # Kubernetes secret name (e.g., "onix-bpp-secrets")
+  # If secretName is empty or secret doesn't exist, use hardcoded values
+
+image:
+  repository: manendrapalsingh/onix-adapter
+  tag: v0.9.2
+
+service:
+  port: 8002
+  targetPort: 8002
+
+redis:
+  enabled: true
+  service:
+    port: 6379
+
+config:
+  # Keys for fallback when secrets are not enabled
+  keys:
+    signingPrivateKey: "HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4="
+    signingPublicKey: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+    encrPrivateKey: "HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4="
+    encrPublicKey: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+  
+  adapter: |
+    appName: "bpp-ev-charging"
+    
+    log:
+      level: debug
+      destinations:
+        - type: stdout
+      contextKeys:
+        - transaction_id
+        - message_id
+        - subscriber_id
+        - module_id
+    
+    http:
+      port: 8002
+      timeout:
+        read: 30
+        write: 30
+        idle: 30
+    
+    pluginManager:
+      root: /app/plugins
+    
+    plugins:
+      otelsetup:
+        id: otelsetup
+        config:
+          serviceName: "beckn-onix"
+          serviceVersion: "1.0.0"
+          enableMetrics: "true"
+          environment: "development"
+          metricsPort: "9004"
+    
+    modules:
+      - name: bppTxnReceiver
+        path: /bpp/receiver/
+        handler:
+          type: std
+          role: bpp
+          httpClientConfig:
+            maxIdleConns: 1000
+            maxIdleConnsPerHost: 200
+            idleConnTimeout: 300s
+            responseHeaderTimeout: 5s
+          plugins:
+            registry:
+              id: registry
+              config:
+                url: http://mock-registry:3030
+                retry_max: 3
+                retry_wait_min: 100ms
+                retry_wait_max: 500ms
+            keyManager:
+              id: simplekeymanager
+              config:
+                networkParticipant: ev-charging.sandbox2.com
+                keyId: bpp-key-1
+                signingPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+                signingPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+                encrPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+                encrPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+            cache:
+              id: cache
+              config:
+                addr: onix-bpp-redis-bpp:6379
+            schemaValidator:
+              id: schemav2validator
+              config:
+                type: url
+                location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
+                cacheTTL: "3600"
+            signValidator:
+              id: signvalidator
+            router:
+              id: router
+              config:
+                routingConfig: /app/config/bpp_receiver_routing.yaml
+            middleware:
+              - id: reqpreprocessor
+                config:
+                  uuidKeys: transaction_id,message_id
+                  role: bpp
+          steps:
+            - validateSign
+            - addRoute
+            - validateSchema
+    
+      - name: bppTxnCaller
+        path: /bpp/caller/
+        handler:
+          type: std
+          role: bpp
+          subscriberId: ev-charging.sandbox2.com
+          httpClientConfig:
+            maxIdleConns: 1000
+            maxIdleConnsPerHost: 200
+            idleConnTimeout: 300s
+            responseHeaderTimeout: 5s
+          plugins:
+            registry:
+              id: registry
+              config:
+                url: http://mock-registry:3030
+                retry_max: 3
+                retry_wait_min: 100ms
+                retry_wait_max: 500ms
+            keyManager:
+              id: simplekeymanager
+              config:
+                networkParticipant: ev-charging.sandbox2.com
+                keyId: bpp-key-1
+                signingPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+                signingPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+                encrPrivateKey: HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=
+                encrPublicKey: 2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=
+            cache:
+              id: cache
+              config:
+                addr: onix-bpp-redis-bpp:6379
+            schemaValidator:
+              id: schemav2validator
+              config:
+                type: url
+                location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
+                cacheTTL: "3600"
+            router:
+              id: router
+              config:
+                routingConfig: /app/config/bpp_caller_routing.yaml
+            signer:
+              id: signer
+            middleware:
+              - id: reqpreprocessor
+                config:
+                  uuidKeys: transaction_id,message_id
+                  role: bpp
+          steps:
+            - validateSchema
+            - addRoute
+            - sign
+
+  routing:
+    caller: |
+      # BPP Caller Routing Configuration
+      # Phase 1: Receives on_discover from mock-bpp (HTTP) -> sends HTTP to CDS
+      # Phase 2+: Receives other responses from mock-bpp (HTTP) -> sends HTTP to BAP-ONIX plugin
+      
+      routingRules:
+        # Phase 1: on_discover response from mock-bpp -> sends HTTP to CDS
+        # Receives HTTP callback from mock-bpp and forwards to CDS
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://mock-cds:8082/csd
+            excludeAction: false
+          endpoints:
+            - on_discover
+      
+        # Phase 2+: Other responses from mock-bpp -> sends HTTP to BAP-ONIX plugin
+        # Receives HTTP callbacks from mock-bpp and forwards to BAP plugin using bap_uri from context
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: bap
+          target: {}
+          endpoints:
+            - on_select
+            - on_init
+            - on_confirm
+            - on_status
+            - on_track
+            - on_cancel
+            - on_update
+            - on_rating
+            - on_support
+    
+    receiver: |
+      # ONIX BPP Receiver Routing Configuration
+      
+      # Supports Phase 1 (Discover from CDS) and Phase 2+ (Direct from BAP-ONIX)
+      # Phase 1: Discover requests from CDS (HTTP) -> routes to mock-bpp (HTTP)
+      # Phase 2+: Other requests from BAP-ONIX (HTTP) -> routes to mock-bpp (HTTP)
+      # All routes to backend service via HTTP API
+      
+      routingRules:
+        # Phase 1: Discover request from CDS -> routes to mock-bpp via HTTP
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://mock-bpp:9002
+            excludeAction: false
+          endpoints:
+            - discover
+      
+        # Phase 2+: Other requests from BAP-ONIX Caller (HTTP) -> routes to mock-bpp via HTTP
+        # Requests come directly from BAP-ONIX (bypasses CDS)
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://mock-bpp:9002
+            excludeAction: false
+          endpoints:
+            - select
+            - init
+            - confirm
+            - status
+            - track
+            - cancel
+            - update
+            - rating
+            - support
+

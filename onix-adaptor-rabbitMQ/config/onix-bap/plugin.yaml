@@ -1,0 +1,12 @@
+plugins:
+  - registry
+  - simplekeymanager
+  - cache
+  - schemavalidator
+  - signvalidator
+  - router
+  - publisher
+  - rabbitmqconsumer
+  - queuehandler
+  - signer
+  - reqpreprocessor

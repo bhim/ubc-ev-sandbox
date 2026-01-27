@@ -1,0 +1,130 @@
+# Sandbox values for EV Charging Monolithic Architecture
+# This file contains sandbox-specific overrides for the helm chart
+# Use with: helm install <release-name> ../helm -f values-sandbox.yaml
+
+# Service configuration - Expose BAP and BPP externally, keep others internal
+service:
+  type: LoadBalancer  # Expose BAP/BPP ONIX plugins externally (LoadBalancer or NodePort)
+  # For NodePort instead: type: NodePort
+  # For internal only: type: ClusterIP
+
+# Secret management (optional for production)
+# secrets:
+#   enabled: false  # Set to true in production
+#   secretName: ""  # Kubernetes secret name
+
+# Note: Adapter and routing configs are defined in component-specific values files:
+# - ../helm/values-bap.yaml for BAP deployments
+# - ../helm/values-bpp.yaml for BPP deployments
+
+# Mock Services Configuration
+# These configurations define mock services that can be deployed alongside the ONIX adapters.
+# Config file paths are relative to the helm-sendbox directory.
+mockServices:
+  enabled: true  # Set to false to skip mock service deployment
+  mockRegistry:
+    enabled: true
+    image:
+      repository: manendrapalsingh/mock-registry
+      tag: latest
+    service:
+      type: ClusterIP
+      port: 3030
+    config: |
+      server:
+        port: ":3030"
+
+      subscribers:
+        - subscriber_id: "ev-charging.sandbox1.com"
+          subscriber_uri: "http://ev-charging-bap-onix-api-monolithic-bap-service:8001/bap/receiver"
+          type: "BAP"
+          signing_public_key: "ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4="
+          encr_public_key: "ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4="
+          key_id: "bap-key-1"
+        
+        - subscriber_id: "ev-charging.sandbox2.com"
+          subscriber_uri: "http://ev-charging-bpp-onix-api-monolithic-bpp-service:8002/bpp/receiver"
+          type: "BPP"
+          signing_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+          encr_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+          key_id: "bpp-key-1"
+        
+        - subscriber_id: "mock-cds"
+          subscriber_uri: "http://ev-charging-mock-cds:8082"
+          type: "CDS"
+          signing_public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+          encr_public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+          key_id: "cds-key-1"
+      
+      defaults:
+        valid_from: "2025-01-01T00:00:00Z"
+        valid_until: "2099-12-31T23:59:59Z"
+    
+    healthcheck:
+      enabled: true
+      path: /health
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+  mockCds:
+    enabled: true
+    image:
+      repository: manendrapalsingh/mock-cds
+      tag: latest
+    service:
+      type: ClusterIP
+      port: 8082
+    config:
+      path: ../sandbox/mock-cds_config.yml
+    healthcheck:
+      enabled: true
+      path: /health
+      initialDelaySeconds: 30
+      periodSeconds: 30
+      timeoutSeconds: 10
+      failureThreshold: 3
+  mockBap:
+    enabled: true
+    image:
+      repository: manendrapalsingh/mock-bap
+      tag: latest
+    service:
+      type: ClusterIP
+      port: 9001
+    config:
+      path: ../sandbox/mock-bap_config.yml
+    healthcheck:
+      enabled: true
+      path: /health
+      initialDelaySeconds: 30
+      periodSeconds: 30
+      timeoutSeconds: 10
+      failureThreshold: 3
+  mockBpp:
+    enabled: true
+    image:
+      repository: manendrapalsingh/mock-bpp
+      tag: latest
+    service:
+      type: ClusterIP
+      port: 9002
+    config:
+      path: ../sandbox/mock-bpp_config.yml
+      requestJsonPath: ../sandbox/request.json
+    healthcheck:
+      enabled: true
+      path: /health
+      initialDelaySeconds: 30
+      periodSeconds: 30
+      timeoutSeconds: 10
+      failureThreshold: 3
+
+# Service names in Kubernetes will match sandbox/ docker-compose service names:
+# - mock-registry (port 3030)
+# - mock-cds (port 8082)
+# - mock-bap (port 9001)
+# - mock-bpp (port 9002)
+# - redis-onix-bap (port 6379) - now uses fullnameOverride pattern
+# - redis-onix-bpp (port 6379) - now uses fullnameOverride pattern
+

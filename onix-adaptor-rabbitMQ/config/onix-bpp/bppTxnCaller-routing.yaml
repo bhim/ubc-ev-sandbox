@@ -1,0 +1,50 @@
+
+# BPP Caller Routing Configuration
+# Phase 1: Sends on_discover response to CDS for aggregation
+# Phase 2+: Sends other responses directly to BAP-ONIX (bypasses CDS)
+
+routingRules:
+  # Phase 1: on_discover response to CDS via HTTP (network communication)
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-cds:8082/csd
+      excludeAction: false
+    endpoints:
+      - on_discover
+
+  # Phase 2+: Other responses to BAP plugin via HTTP (network communication)
+  # BAP plugin will then forward to BAP app via RabbitMQ
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: bap
+    target: {}
+    endpoints:
+      - on_select
+      - on_init
+      - on_confirm
+      - on_status
+      - on_track
+      - on_cancel
+      - on_update
+      - on_rating
+      - on_support
+
+  # Catalog Publish: Route to discovery indexer via URL
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: url
+    target:
+      url: http://mock-cds:8082/csd/catalog_publish
+      excludeAction: false
+    endpoints:
+      - catalog_publish
+
+  # On Catalog Publish: Route callback to BAP-ONIX
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: bap
+    target: {}
+    endpoints:
+      - on_catalog_publish

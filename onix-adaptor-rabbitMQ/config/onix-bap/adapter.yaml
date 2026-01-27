@@ -1,0 +1,190 @@
+appName: "onix-ev-charging"
+
+log:
+  level: debug
+  destinations:
+    - type: stdout
+  contextKeys:
+    - transaction_id
+    - message_id
+    - subscriber_id
+    - module_id
+
+# HTTP configuration is required for bapTxnReceiver to receive HTTP requests from BPP-ONIX plugin
+# The bapTxnReceiver module uses handler type "std" which requires HTTP server
+http:
+  port: 8001
+  timeout:
+    read: 30
+    write: 30
+    idle: 30
+
+pluginManager:
+  root: /app/plugins
+
+plugins:
+  otelsetup:
+    id: otelsetup
+    config:
+      serviceName: "beckn-onix"
+      serviceVersion: "1.0.0"
+      enableMetrics: "true"
+      environment: "development"
+      metricsPort: "9003"
+
+modules:
+  # BAP Receiver - Receives HTTP requests from BPP-ONIX and publishes to BAP Backend
+  # Phase 1: Receives on_discover from CDS with aggregated catalog
+  # Phase 2+: Receives callbacks from BPPs (on_select, on_init, on_confirm, etc.)
+  # Publishes messages to BAP Backend via RabbitMQ
+  - name: bapTxnReceiver
+    path: /bap/receiver/
+    handler:
+      type: std
+      role: bap
+      subscriberId: ev-charging.sandbox1.com
+      httpClientConfig:
+        maxIdleConns: 1000
+        maxIdleConnsPerHost: 200
+        idleConnTimeout: 300s
+        responseHeaderTimeout: 5s
+      plugins:
+        registry:
+          id: registry
+          config:
+            url: http://mock-registry:3030
+            retry_max: 3
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+        keyManager:
+          id: simplekeymanager
+          config:
+            networkParticipant: ev-charging.sandbox1.com
+            keyId: bap-key-1
+            signingPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
+            signingPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+            encrPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
+            encrPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+        cache:
+          id: cache
+          config:
+            addr: redis-bap:6379
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
+            cacheTTL: "3600"
+        signValidator:
+          id: signvalidator
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/bapTxnReciever-routing.yaml
+        publisher:
+          id: publisher
+          config:
+            addr: rabbitmq:5672
+            exchange: beckn_exchange
+            durable: "true"
+            username: guest
+            password: guest
+        middleware:
+          - id: reqpreprocessor
+            config:
+              uuidKeys: transaction_id,message_id
+              role: bap
+      steps:
+        - validateSign
+        - validateSchema
+        - addRoute
+
+  # BAP Caller - Consumes requests from BAP Backend via RabbitMQ
+  # Phase 1: Routes discover to external CDS for aggregation
+  # Phase 2+: Routes other requests directly to BPP (bypasses CDS)
+  # Uses bpp_uri from context for dynamic routing in Phase 2+
+  - name: bapTxnCaller
+    path: ""  # path is not used for queue handlers
+    handler:
+      type: queue
+      role: bap
+      subscriberId: ev-charging.sandbox1.com
+      httpClientConfig:
+        maxIdleConns: 1000
+        maxIdleConnsPerHost: 200
+        idleConnTimeout: 300s
+        responseHeaderTimeout: 5s
+      plugins:
+        registry:
+          id: registry
+          config:
+            url: http://mock-registry:3030
+            retry_max: 3
+            retry_wait_min: 100ms
+            retry_wait_max: 500ms
+        keyManager:
+          id: simplekeymanager
+          config:
+            networkParticipant: ev-charging.sandbox1.com
+            keyId: bap-key-1
+            signingPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
+            signingPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+            encrPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
+            encrPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+        cache:
+          id: cache
+          config:
+            addr: redis-bap:6379
+        schemaValidator:
+          id: schemav2validator
+          config:
+            type: url
+            location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
+            cacheTTL: "3600"
+        consumer:
+          id: consumer
+          config:
+            subscriberId: ev-charging.sandbox1.com
+            role: bap
+            consumerType: rabbitmq
+            consumerThreads: "2"
+            consumer.id: rabbitmqconsumer
+            consumer.addr: rabbitmq:5672
+            consumer.exchange: beckn_exchange
+            # Routing keys for requests from BAP Backend (bap.discover, bap.select, etc.)
+            consumer.routingKeys: "bap.discover,bap.select,bap.init,bap.confirm,bap.status,bap.track,bap.cancel,bap.update,bap.rating,bap.support"
+            consumer.queueName: "bap_caller_queue"
+            consumer.durable: "true"
+            consumer.autoDelete: "false"
+            consumer.exclusive: "false"
+            consumer.noWait: "false"
+            consumer.autoAck: "false"
+            consumer.prefetchCount: "10"
+            consumer.maxRetry: "3"
+            consumer.queueArgs: ""
+            consumer.username: guest
+            consumer.password: guest
+            steps: '["addRoute", "validateSchema", "sign"]'
+        router:
+          id: router
+          config:
+            routingConfig: /app/config/bapTxnCaller-routing.yaml
+        publisher:
+          id: publisher
+          config:
+            addr: rabbitmq:5672
+            exchange: beckn_exchange
+            durable: "true"
+            username: guest
+            password: guest
+        signer:
+          id: signer
+        middleware:
+          - id: reqpreprocessor
+            config:
+              uuidKeys: transaction_id,message_id
+              role: bap
+      steps:
+        - validateSchema
+        - addRoute
+        - sign

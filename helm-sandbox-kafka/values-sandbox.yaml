@@ -1,0 +1,251 @@
+# Sandbox values for EV Charging Kafka Setup
+# This file contains ALL sandbox-specific overrides for the helm/kafka chart
+# 
+# Usage:
+#   For BAP: helm install ev-charging-kafka-bap ../../helm/kafka -f ../../helm/kafka/values-bap.yaml -f values-sandbox.yaml
+#   For BPP: helm install ev-charging-kafka-bpp ../../helm/kafka -f ../../helm/kafka/values-bpp.yaml -f values-sandbox.yaml
+#
+# This file replicates the structure of sandbox/docker/kafka/docker-compose.yml
+# All sandbox-specific settings that should not be in production values files
+#
+# IMPORTANT: Service URI Configuration
+# The mockServices.registry.serviceUris.bap and serviceUris.bpp values control
+# the subscriber URIs registered in the mock-registry. These MUST match the
+# bap_uri and bpp_uri used in the message context for signature verification to work.
+# 
+# Default configuration:
+#   - bap: "http://mock-bap-kafka:9003" (matches what mock-bap-kafka publishes)
+#   - bpp: "http://onix-bpp-service:8002/bpp/receiver" (BPP service URI)
+#
+# To change these values, update the serviceUris section under mockServices.registry
+# and redeploy the mock-registry service.
+
+# ============================================================================
+# Kafka Message Broker (KRaft mode - no Zookeeper needed)
+# Note: Kafka is controlled per-component in values-bap.yaml and values-bpp.yaml
+# It should only be enabled for BAP release (shared resource)
+# Both BAP and BPP use the same Kafka broker from BAP release
+# ============================================================================
+# Override fullname to get consistent service name: onix-kafka
+fullnameOverride: onix
+# kafka:
+#   # enabled is controlled by values-bap.yaml (true) and values-bpp.yaml (false)
+#   image:
+#     repository: confluentinc/cp-kafka
+#     tag: "7.5.0"
+#   # KRaft mode configuration (matches docker-compose.yml)
+#   brokerId: 1
+#   processRoles: "broker,controller"
+#   nodeId: 1
+#   controllerQuorumVoters: "1@kafka:9093"
+#   listeners: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
+#   advertisedListeners: "PLAINTEXT://kafka:9092"
+#   listenerSecurityProtocolMap: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+#   controllerListenerNames: "CONTROLLER"
+#   interBrokerListenerName: "PLAINTEXT"
+#   # Topic and replication settings
+#   autoCreateTopicsEnable: true
+#   offsetsTopicReplicationFactor: 1
+#   transactionStateLogReplicationFactor: 1
+#   transactionStateLogMinIsr: 1
+#   # Log directories for KRaft
+#   logDirs: "/var/lib/kafka/data"
+#   clusterId: "MkU3OEVBNTcwNTJENDM2Qk"
+#   service:
+#     port: 9092
+#     targetPort: 9092
+#     controllerPort: 9093
+
+# ============================================================================
+# Kafka UI Configuration
+# Note: Kafka UI is controlled per-component in values-bap.yaml and values-bpp.yaml
+# It should only be enabled for BAP release (shared resource)
+# - BAP: values-bap.yaml has kafkaUI.enabled: true
+# - BPP: values-bpp.yaml has kafkaUI.enabled: false
+# Do NOT override here to avoid Helm ownership conflicts
+# ============================================================================
+# kafkaUI:
+#   enabled: true  # Controlled by component-specific values files
+
+# ============================================================================
+# Redis Configuration
+# Note: Redis is controlled per-component in values-bap.yaml and values-bpp.yaml
+# Each component (BAP/BPP) has its own Redis instance
+# This section only provides sandbox-specific configuration if needed
+# ============================================================================
+# redis:
+#   # enabled is controlled by values-bap.yaml and values-bpp.yaml (both true)
+#   image:
+#     repository: redis
+#     tag: alpine
+#   service:
+#     port: 6379
+#     targetPort: 6379
+
+# ============================================================================
+# Kafka UI (by Provectus) - Web UI for managing and monitoring Kafka
+# Note: Kafka UI is controlled per-component in values-bap.yaml and values-bpp.yaml
+# It should only be enabled for BAP release (shared resource)
+# This section only provides sandbox-specific configuration if needed
+# ============================================================================
+# kafkaUI:
+#   # enabled is controlled by values-bap.yaml (true) and values-bpp.yaml (false)
+#   image:
+#     repository: provectuslabs/kafka-ui
+#     tag: latest
+#   service:
+#     type: ClusterIP
+#     port: 8080
+#     targetPort: 8080
+#   config:
+#     KAFKA_CLUSTERS_0_NAME: local
+#     KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+
+# ============================================================================
+# Mock Services Configuration
+# ============================================================================
+mockServices:
+  enabled: true
+  
+  # --------------------------------------------------------------------------
+  # Mock Registry Service
+  # --------------------------------------------------------------------------
+  registry:
+    enabled: true
+    image:
+      repository: manendrapalsingh/mock-registry
+      tag: latest
+    service:
+      type: ClusterIP
+      port: 3030
+    config:
+      server:
+        port: ":3030"
+      
+      subscribers:
+        - subscriber_id: "ev-charging.sandbox1.com"
+          subscriber_uri: "http://onix-bap-service:8001/bap/receiver"
+          type: "BAP"
+          signing_public_key: "ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4="
+          encr_public_key: "ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4="
+          key_id: "bap-key-1"
+        
+        - subscriber_id: "ev-charging.sandbox2.com"
+          subscriber_uri: "http://onix-bpp-service:8002/bpp/receiver"
+          type: "BPP"
+          signing_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+          encr_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+          key_id: "bpp-key-1"
+        
+        - subscriber_id: "mock-cds"
+          subscriber_uri: "http://mock-cds:8082"
+          type: "CDS"
+          signing_public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+          encr_public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+          key_id: "cds-key-1"
+        
+        - subscriber_id: "mock-bap-kafka"
+          subscriber_uri: "http://mock-bap-kafka:9003"
+          type: "BAP"
+          signing_public_key: "ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4="
+          encr_public_key: "ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4="
+          key_id: "bap-key-1"
+        
+        - subscriber_id: "mock-bpp-kafka"
+          subscriber_uri: "http://mock-bpp-kafka:9004"
+          type: "BPP"
+          signing_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+          encr_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+          key_id: "bpp-key-1"
+      
+      defaults:
+        valid_from: "2025-01-01T00:00:00Z"
+        valid_until: "2099-12-31T23:59:59Z"
+    # Configurable service URIs for BAP and BPP
+    # These URIs must match what's used in the message context for signature verification
+    # The registry uses these URIs when looking up subscribers for signature validation
+    # These should match the subscriber_uri values in mock/mock-registry/values.yaml
+    # With fullnameOverride=onix, services are named onix-bap and onix-bpp
+    # serviceUris:
+    #   bap: "http://onix-bap:8001/bap/receiver"  # Matches mock/mock-registry/values.yaml (for ev-charging.sandbox1.com)
+    #   bpp: "http://onix-bpp:8002/bpp/receiver"  # Matches mock/mock-registry/values.yaml (for ev-charging.sandbox2.com)
+    healthcheck:
+      enabled: true
+      path: /health
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+  
+  # --------------------------------------------------------------------------
+  # Mock CDS Service
+  # --------------------------------------------------------------------------
+  cds:
+    enabled: true
+    image:
+      repository: manendrapalsingh/mock-cds
+      tag: latest
+    service:
+      type: ClusterIP
+      port: 8082
+    config:
+      path: ../sandbox-kafka/mock-cds_config.yml
+    healthcheck:
+      enabled: true
+      path: /health
+      initialDelaySeconds: 30
+      periodSeconds: 30
+      timeoutSeconds: 10
+      failureThreshold: 3
+  
+  # --------------------------------------------------------------------------
+  # Mock BAP Kafka Service
+  # Consumes from: bap.on_discover, bap.on_select, bap.on_init, etc.
+  # Publishes to: bap.discover, bap.select, bap.init, etc.
+  # --------------------------------------------------------------------------
+  bapKafka:
+    enabled: true
+    image:
+      repository: manendrapalsingh/mock-bap-kafka
+      tag: latest
+    config:
+      path: ../sandbox-kafka/mock-bap-kafka_config.yml
+    healthcheck:
+      enabled: true
+      path: /health
+      initialDelaySeconds: 30
+      periodSeconds: 30
+      timeoutSeconds: 10
+      failureThreshold: 3
+  
+  # --------------------------------------------------------------------------
+  # Mock BPP Kafka Service
+  # Consumes from: bpp.select, bpp.init, bpp.confirm, etc.
+  # Publishes to: bpp.on_select, bpp.on_init, bpp.on_confirm, etc.
+  # --------------------------------------------------------------------------
+  bppKafka:
+    enabled: true
+    image:
+      repository: manendrapalsingh/mock-bpp-kafka
+      tag: latest
+    config:
+      path: ../sandbox-kafka/mock-bpp-kafka_config.yml
+    healthcheck:
+      enabled: true
+      path: /health
+      initialDelaySeconds: 30
+      periodSeconds: 30
+      timeoutSeconds: 10
+      failureThreshold: 3
+
+# ============================================================================
+# Deployment Notes
+# ============================================================================
+# Mock Services Deployment:
+#   - mock-registry: Deployed with BAP release only
+#   - mock-cds: Deployed with BAP release only
+#   - mock-bap-kafka: Deployed with BAP release only
+#   - mock-bpp-kafka: Deployed with BPP release only
+#
+# Kafka and Redis are deployed with BAP release and shared with BPP release
+# Kafka UI is deployed with BAP release (shared resource)

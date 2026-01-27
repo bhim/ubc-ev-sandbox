@@ -1,0 +1,86 @@
+# BPP Receiver Routing Configuration
+# Phase 1: Receives discover requests from CDS (HTTP) -> publishes to RabbitMQ -> mock-bpp-rabbitmq (consumer)
+# Phase 2+: Receives other requests (select, init, confirm, etc.) from BAP-ONIX (HTTP) -> publishes to RabbitMQ -> mock-bpp-rabbitmq (consumer)
+
+routingRules:
+  # Phase 1: Discover request from CDS -> publish to RabbitMQ -> mock-bpp-rabbitmq (consumer)
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: publisher
+    target:
+      publisherId: bpp.discover
+    endpoints:
+      - discover
+
+  # Phase 2+: Other requests from BAP-ONIX (HTTP) -> publish to RabbitMQ -> mock-bpp-rabbitmq (consumer)
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: publisher
+    target:
+      publisherId: bpp.select
+    endpoints:
+      - select
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: publisher
+    target:
+      publisherId: bpp.init
+    endpoints:
+      - init
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: publisher
+    target:
+      publisherId: bpp.confirm
+    endpoints:
+      - confirm
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: publisher
+    target:
+      publisherId: bpp.status
+    endpoints:
+      - status
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: publisher
+    target:
+      publisherId: bpp.track
+    endpoints:
+      - track
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: publisher
+    target:
+      publisherId: bpp.cancel
+    endpoints:
+      - cancel
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: publisher
+    target:
+      publisherId: bpp.update
+    endpoints:
+      - update
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: publisher
+    target:
+      publisherId: bpp.rating
+    endpoints:
+      - rating
+
+  - domain: beckn.one:deg:ev-charging
+    version: "2.0.0"
+    targetType: publisher
+    target:
+      publisherId: bpp.support
+    endpoints:
+      - support

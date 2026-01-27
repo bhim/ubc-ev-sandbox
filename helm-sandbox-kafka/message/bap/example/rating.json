@@ -1,0 +1,32 @@
+{
+  "context": {
+    "version": "2.0.0",
+    "action": "rating",
+    "domain": "beckn.one:deg:ev-charging",
+    "bap_id": "ev-charging.sandbox1.com",
+    "bap_uri": "http://mock-bap-kafka:9003",
+    "transaction_id": "550e8400-e29b-41d4-a716-446655440000",
+    "message_id": "89ee20fe-b592-48b0-a5c5-e38f6b90e569",
+    "timestamp": "2025-01-27T12:00:00Z",
+    "ttl": "PT30S",
+    "bpp_id": "ev-charging.sandbox2.com",
+    "bpp_uri": "http://onix-bpp-service:8002/bpp/receiver"
+  },
+  "message": {
+    "id": "fulfillment-001",
+    "value": 5,
+    "best": 5,
+    "worst": 1,
+    "category": "fulfillment",
+    "feedback": {
+      "comments": "Excellent charging experience! The station was clean, easy to find, and the charging was fast and reliable. The staff was helpful and the payment process was smooth.",
+      "tags": [
+        "fast-charging",
+        "easy-to-use",
+        "clean-station",
+        "helpful-staff",
+        "smooth-payment"
+      ]
+    }
+  }
+}

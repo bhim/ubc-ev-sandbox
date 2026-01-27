@@ -81,6 +81,11 @@ modules:
             type: url
             location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
             cacheTTL: "3600"
+            # extendedSchema_enabled: "true"
+            # extendedSchema_cacheTTL: "86400"
+            # extendedSchema_maxCacheSize: "100"
+            # extendedSchema_downloadTimeout: "30"
+            # extendedSchema_allowedDomains: "beckn.org,example.com,raw.githubusercontent.com"
         signValidator:
           id: signvalidator
         router:
@@ -147,6 +152,11 @@ modules:
             type: url
             location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
             cacheTTL: "3600"
+            # extendedSchema_enabled: "true"
+            # extendedSchema_cacheTTL: "86400"
+            # extendedSchema_maxCacheSize: "100"
+            # extendedSchema_downloadTimeout: "30"
+            # extendedSchema_allowedDomains: "beckn.org,example.com,raw.githubusercontent.com"
         router:
           id: router
           config:
