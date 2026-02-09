@@ -217,71 +217,318 @@
             font-size: 13px;
             margin-top: 15px;
         }
+        
+        .repository-docs {
+            margin-top: 40px;
+        }
+        
+        .repo-section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+        
+        .repo-section-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .repo-section-icon {
+            font-size: 32px;
+        }
+        
+        .repo-section-title {
+            font-size: 24px;
+            color: #333;
+            margin: 0;
+        }
+        
+        .repo-section-description {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .repo-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        
+        .repo-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .repo-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .repo-item-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .repo-item-description {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .repo-item-links {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .repo-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #667eea;
+            text-decoration: none;
+            font-size: 13px;
+            padding: 6px 12px;
+            background: white;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+        
+        .repo-link:hover {
+            background: #f0f0f0;
+        }
+        
+        .repo-link-icon {
+            font-size: 14px;
+        }
+        
+        .config-files {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .config-files-label {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        
+        .config-file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .config-file-link {
+            font-size: 12px;
+            color: #555;
+            text-decoration: none;
+            padding: 4px 8px;
+            background: white;
+            border-radius: 4px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            transition: background 0.2s ease;
+        }
+        
+        .config-file-link:hover {
+            background: #f0f0f0;
+            color: #667eea;
+        }
+        
+        .loading {
+            text-align: center;
+            color: white;
+            padding: 40px;
+            font-size: 16px;
+        }
+        
+        .error {
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+        }
+        
+        .error h3 {
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>⚡ EV Charging Network</h1>
-            <p>Beckn Protocol API Documentation for Electric Vehicle Charging Services - enabling seamless discovery, booking, and management of EV charging infrastructure.</p>
-            <span class="badge">OpenAPI 3.0.3 | Beckn Protocol v2.0</span>
+        <div id="header-container" class="header">
+            <div class="loading">Loading...</div>
         </div>
         
-        <div class="cards">
-            <a href="bap.html" class="card card-bap">
-                <div class="card-icon">🔋</div>
-                <h2>BAP APIs</h2>
-                <p>Beckn Application Platform APIs - Request endpoints for discovering charging stations, initiating sessions, and managing bookings.</p>
-                <span class="btn">View Documentation →</span>
-                <div class="endpoints">
-                    <h4>Key Endpoints</h4>
-                    <div class="endpoint-list">
-                        <span class="endpoint-tag">/discover</span>
-                        <span class="endpoint-tag">/select</span>
-                        <span class="endpoint-tag">/init</span>
-                        <span class="endpoint-tag">/confirm</span>
-                        <span class="endpoint-tag">/update</span>
-                        <span class="endpoint-tag">/track</span>
-                        <span class="endpoint-tag">/cancel</span>
-                        <span class="endpoint-tag">/rating</span>
-                        <span class="endpoint-tag">/support</span>
-                    </div>
-                </div>
-            </a>
-            
-            <a href="bpp.html" class="card card-bpp">
-                <div class="card-icon">🔌</div>
-                <h2>BPP APIs</h2>
-                <p>Beckn Provider Platform Callback APIs - Response endpoints for catalog publishing, order confirmations, and session status updates.</p>
-                <span class="btn">View Documentation →</span>
-                <div class="endpoints">
-                    <h4>Key Endpoints</h4>
-                    <div class="endpoint-list">
-                        <span class="endpoint-tag">/on_discover</span>
-                        <span class="endpoint-tag">/on_select</span>
-                        <span class="endpoint-tag">/on_init</span>
-                        <span class="endpoint-tag">/on_confirm</span>
-                        <span class="endpoint-tag">/on_update</span>
-                        <span class="endpoint-tag">/on_track</span>
-                        <span class="endpoint-tag">/on_cancel</span>
-                        <span class="endpoint-tag">/on_status</span>
-                        <span class="endpoint-tag">/catalog/publish</span>
-                    </div>
-                </div>
-            </a>
-        </div>
+        <div id="api-cards-container" class="cards"></div>
         
-        <div class="downloads">
-            <h3>📥 Download OpenAPI Specifications</h3>
-            <div class="download-links">
-                <a href="bap.yaml" download class="download-link">📄 BAP Spec (YAML)</a>
-                <a href="bpp.yaml" download class="download-link">📄 BPP Spec (YAML)</a>
-            </div>
-        </div>
+        <div id="downloads-container" class="downloads"></div>
         
-        <div class="footer">
-            <p>Part of the <a href="https://becknprotocol.io" target="_blank">Beckn Protocol</a> ecosystem for open commerce networks.</p>
-        </div>
+        <div id="repository-docs" class="repository-docs"></div>
+        
+        <div id="footer-container" class="footer"></div>
     </div>
+    
+    <script>
+        // Link generation utility
+        function generateLink(path) {
+            // Check if we're on GitHub
+            if (window.location.hostname.includes('github.io') || window.location.hostname.includes('github.com')) {
+                // Extract repo info from current URL or use default
+                const pathParts = window.location.pathname.split('/');
+                const repoPath = pathParts.slice(0, pathParts.indexOf('docs')).join('/');
+                const branch = 'main'; // Default branch, could be made configurable
+                return `https://github.com${repoPath}/blob/${branch}/${path}`;
+            }
+            // For local file system, use relative path
+            return `../${path}`;
+        }
+        
+        // Render header
+        function renderHeader(header) {
+            const container = document.getElementById('header-container');
+            container.innerHTML = `
+                <h1>${header.title}</h1>
+                <p>${header.description}</p>
+                ${header.badges.map(badge => `<span class="badge">${badge}</span>`).join('')}
+            `;
+        }
+        
+        // Render API cards
+        function renderApiCards(cards) {
+            const container = document.getElementById('api-cards-container');
+            container.innerHTML = cards.map(card => `
+                <a href="${card.link}" class="card card-${card.type}">
+                    <div class="card-icon">${card.icon}</div>
+                    <h2>${card.title}</h2>
+                    <p>${card.description}</p>
+                    <span class="btn">View Documentation →</span>
+                    <div class="endpoints">
+                        <h4>Key Endpoints</h4>
+                        <div class="endpoint-list">
+                            ${card.endpoints.map(ep => `<span class="endpoint-tag">${ep}</span>`).join('')}
+                        </div>
+                    </div>
+                </a>
+            `).join('');
+        }
+        
+        // Render downloads
+        function renderDownloads(downloads) {
+            const container = document.getElementById('downloads-container');
+            container.innerHTML = `
+                <h3>📥 Download OpenAPI Specifications</h3>
+                <div class="download-links">
+                    ${downloads.map(dl => `
+                        <a href="${dl.file}" download class="download-link">${dl.icon} ${dl.title}</a>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        // Render footer
+        function renderFooter(footer) {
+            const container = document.getElementById('footer-container');
+            container.innerHTML = `
+                <p>${footer.text} <a href="${footer.link.url}" target="_blank">${footer.link.text}</a> ${footer.suffix}</p>
+            `;
+        }
+        
+        // Render repository sections
+        function renderRepositorySections(sections) {
+            const container = document.getElementById('repository-docs');
+            container.innerHTML = sections.map(section => `
+                <div class="repo-section">
+                    <div class="repo-section-header">
+                        <span class="repo-section-icon">${section.icon}</span>
+                        <div>
+                            <h2 class="repo-section-title">${section.category}</h2>
+                            <p class="repo-section-description">${section.description}</p>
+                        </div>
+                    </div>
+                    <div class="repo-items">
+                        ${section.items.map(item => `
+                            <div class="repo-item">
+                                <div class="repo-item-name">${item.name}</div>
+                                <div class="repo-item-description">${item.description || ''}</div>
+                                <div class="repo-item-links">
+                                    ${item.readme ? `
+                                        <a href="${generateLink(item.readme)}" class="repo-link" target="_blank">
+                                            <span class="repo-link-icon">📖</span>
+                                            <span>README</span>
+                                        </a>
+                                    ` : ''}
+                                    <a href="${generateLink(item.path)}" class="repo-link" target="_blank">
+                                        <span class="repo-link-icon">📁</span>
+                                        <span>Open Folder</span>
+                                    </a>
+                                </div>
+                                ${item.configFiles && item.configFiles.length > 0 ? `
+                                    <div class="config-files">
+                                        <div class="config-files-label">Configuration Files</div>
+                                        <div class="config-file-list">
+                                            ${item.configFiles.map(cf => `
+                                                <a href="${generateLink(cf.path)}" class="config-file-link" target="_blank">
+                                                    ${cf.name}
+                                                </a>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Load and render config
+        async function loadConfig() {
+            try {
+                const response = await fetch('config.json');
+                if (!response.ok) {
+                    throw new Error('Failed to load config.json');
+                }
+                const config = await response.json();
+                
+                // Render all sections
+                renderHeader(config.header);
+                renderApiCards(config.apiCards);
+                renderDownloads(config.downloads);
+                renderFooter(config.footer);
+                renderRepositorySections(config.repository.sections);
+            } catch (error) {
+                console.error('Error loading config:', error);
+                document.getElementById('header-container').innerHTML = `
+                    <div class="error">
+                        <h3>⚠️ Error Loading Configuration</h3>
+                        <p>Could not load config.json. Please ensure the file exists.</p>
+                        <p style="font-size: 12px; margin-top: 10px; opacity: 0.8;">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Load config when page loads
+        document.addEventListener('DOMContentLoaded', loadConfig);
+    </script>
 </body>
 </html>

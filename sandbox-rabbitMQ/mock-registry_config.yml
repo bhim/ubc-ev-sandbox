@@ -1,0 +1,45 @@
+server:
+  port: ":3030"
+
+subscribers:
+
+  - subscriber_id: "ev-charging.sandbox1.com"
+    subscriber_uri: "http://onix-bap-plugin-rabbitmq:8001/bap/receiver"
+    type: "BAP"
+    signing_public_key: "MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU="
+    encr_public_key: "MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU="
+    key_id: "bap-key-1"
+
+  
+  - subscriber_id: "ev-charging.sandbox2.com"
+    subscriber_uri: "http://onix-bpp-plugin-rabbitmq:8002/bpp/receiver"
+    type: "BPP"
+    signing_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+    encr_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+    key_id: "bpp-key-1"
+  
+  - subscriber_id: "mock-cds"
+    subscriber_uri: "http://mock-cds:8082"
+    type: "CDS"
+    signing_public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+    encr_public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+    key_id: "cds-key-1"
+
+  - subscriber_id: "mock-bap-rabbit-mq"
+    subscriber_uri: "http://mock-bap-rabbit-mq:9003"
+    type: "BAP"
+    signing_public_key: "MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU="
+    encr_public_key: "MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU="
+    key_id: "bap-key-1"
+
+  - subscriber_id: "mock-bpp-rabbit-mq"
+    subscriber_uri: "http://mock-bpp-rabbit-mq:9004"
+    type: "BPP"
+    signing_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+    encr_public_key: "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8="
+    key_id: "bpp-key-1"
+
+defaults:
+  valid_from: "2025-01-01T00:00:00Z"
+  valid_until: "2099-12-31T23:59:59Z"
+

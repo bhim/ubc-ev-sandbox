@@ -1,0 +1,145 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "onix-bpp.fullname" . }}
+  labels:
+    {{- include "onix-bpp.labels" . | nindent 4 }}
+    component: bpp
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "onix-bpp.selectorLabels" . | nindent 6 }}
+      component: bpp
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "onix-bpp.selectorLabels" . | nindent 8 }}
+        component: bpp
+    spec:
+      containers:
+      - name: bpp-plugin
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.service.targetPort }}
+          protocol: TCP
+        env:
+        {{- range .Values.env }}
+        - name: {{ .name }}
+          {{- if .value }}
+          value: {{ .value | quote }}
+          {{- else if .valueFrom }}
+          valueFrom:
+            {{- toYaml .valueFrom | nindent 12 }}
+          {{- end }}
+        {{- end }}
+        {{- if and .Values.secrets.enabled .Values.secrets.secretName }}
+        # Secret environment variables - these override adapter.yaml values at runtime
+        - name: SIGNING_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.secretName }}
+              key: signingPrivateKey
+              optional: true
+        - name: SIGNING_PUBLIC_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.secretName }}
+              key: signingPublicKey
+              optional: true
+        - name: ENCR_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.secretName }}
+              key: encrPrivateKey
+              optional: true
+        - name: ENCR_PUBLIC_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.secretName }}
+              key: encrPublicKey
+              optional: true
+        {{- else }}
+        # Fallback to hardcoded values from config.keys when secrets are disabled
+        {{- if .Values.config.keys.signingPrivateKey }}
+        - name: SIGNING_PRIVATE_KEY
+          value: {{ .Values.config.keys.signingPrivateKey | quote }}
+        {{- end }}
+        {{- if .Values.config.keys.signingPublicKey }}
+        - name: SIGNING_PUBLIC_KEY
+          value: {{ .Values.config.keys.signingPublicKey | quote }}
+        {{- end }}
+        {{- if .Values.config.keys.encrPrivateKey }}
+        - name: ENCR_PRIVATE_KEY
+          value: {{ .Values.config.keys.encrPrivateKey | quote }}
+        {{- end }}
+        {{- if .Values.config.keys.encrPublicKey }}
+        - name: ENCR_PUBLIC_KEY
+          value: {{ .Values.config.keys.encrPublicKey | quote }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.redis.host }}
+        - name: REDIS_HOST
+          value: {{ .Values.redis.host | quote }}
+        {{- end }}
+        {{- if .Values.redis.password }}
+        - name: REDIS_PASSWORD
+          value: {{ .Values.redis.password | quote }}
+        {{- end }}
+        volumeMounts:
+        - name: config
+          mountPath: /app/config/onix-bpp
+        - name: adapter-config
+          mountPath: /app/config/adapter.yaml
+          subPath: adapter.yaml
+        - name: config
+          mountPath: /app/config/bpp_caller_routing.yaml
+          subPath: bpp_caller_routing.yaml
+        - name: config
+          mountPath: /app/config/bpp_receiver_routing.yaml
+          subPath: bpp_receiver_routing.yaml
+        {{- if .Values.resources }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "onix-bpp.fullname" . }}-bpp-config
+      - name: adapter-config
+        configMap:
+          name: {{ include "onix-bpp.fullname" . }}-bpp-adapter
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

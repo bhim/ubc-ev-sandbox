@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "onix-bap-rabbitmq.fullname" . }}-bap-config
+  labels:
+    {{- include "onix-bap-rabbitmq.labels" . | nindent 4 }}
+    component: bap
+data:
+  adapter.yaml: |
+{{- $rabbitmqBroker := .Values.rabbitmq.broker | default "rabbitmq:5672" }}
+{{- $rabbitmqUsername := .Values.rabbitmq.username | default "admin" }}
+{{- $rabbitmqPassword := .Values.rabbitmq.password | default "admin" }}
+{{- $redisHost := .Values.redis.host | default "redis:6379" }}
+{{- $registryUrl := .Values.config.registryUrl | default "http://mock-registry:3030" }}
+{{- $adapterConfig := .Values.config.adapter }}
+{{- $adapterConfig = $adapterConfig | replace "RABBITMQ_BROKER_PLACEHOLDER" $rabbitmqBroker }}
+{{- $adapterConfig = $adapterConfig | replace "RABBITMQ_USERNAME_PLACEHOLDER" $rabbitmqUsername }}
+{{- $adapterConfig = $adapterConfig | replace "RABBITMQ_PASSWORD_PLACEHOLDER" $rabbitmqPassword }}
+{{- $adapterConfig = $adapterConfig | replace "REDIS_HOST_PLACEHOLDER" $redisHost }}
+{{- $adapterConfig = $adapterConfig | replace "http://mock-registry:3030" $registryUrl }}
+{{ $adapterConfig | indent 4 }}
+  bapTxnCaller-routing.yaml: |
+{{- $cdsUrl := .Values.config.cdsUrl | default "http://mock-cds:8082" }}
+{{ .Values.config.routing.caller | replace "http://mock-cds:8082" $cdsUrl | indent 4 }}
+  bapTxnReciever-routing.yaml: |
+{{ .Values.config.routing.receiver | indent 4 }}

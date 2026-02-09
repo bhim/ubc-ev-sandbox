@@ -1,0 +1,260 @@
+{
+  "header": {
+    "title": "⚡ EV Charging Network",
+    "description": "Beckn Protocol API Documentation for Electric Vehicle Charging Services - enabling seamless discovery, booking, and management of EV charging infrastructure.",
+    "badges": ["OpenAPI 3.0.3 | Beckn Protocol v2.0"]
+  },
+  "apiCards": [
+    {
+      "type": "bap",
+      "icon": "🔋",
+      "title": "BAP APIs",
+      "description": "Beckn Application Platform APIs - Request endpoints for discovering charging stations, initiating sessions, and managing bookings.",
+      "link": "bap.html",
+      "endpoints": ["/discover", "/select", "/init", "/confirm", "/update", "/track", "/cancel", "/rating", "/support"]
+    },
+    {
+      "type": "bpp",
+      "icon": "🔌",
+      "title": "BPP APIs",
+      "description": "Beckn Provider Platform Callback APIs - Response endpoints for catalog publishing, order confirmations, and session status updates.",
+      "link": "bpp.html",
+      "endpoints": ["/on_discover", "/on_select", "/on_init", "/on_confirm", "/on_update", "/on_track", "/on_cancel", "/on_status", "/catalog/publish"]
+    }
+  ],
+  "downloads": [
+    {
+      "title": "BAP Spec (YAML)",
+      "file": "bap.yaml",
+      "icon": "📄"
+    },
+    {
+      "title": "BPP Spec (YAML)",
+      "file": "bpp.yaml",
+      "icon": "📄"
+    }
+  ],
+  "footer": {
+    "text": "Part of the",
+    "link": {
+      "text": "Beckn Protocol",
+      "url": "https://becknprotocol.io"
+    },
+    "suffix": "ecosystem for open commerce networks."
+  },
+  "repository": {
+    "sections": [
+      {
+        "category": "Docker Compose Deployments",
+        "icon": "🐳",
+        "description": "Docker Compose based deployments for BAP and BPP",
+        "items": [
+          {
+            "name": "ONIX Adapter (REST API)",
+            "path": "onix-adaptor/",
+            "readme": "onix-adaptor/README.md",
+            "description": "Standalone ONIX adapter with REST API communication for BAP and BPP",
+            "configFiles": [
+              {
+                "name": "config.md",
+                "path": "onix-adaptor/config.md"
+              },
+              {
+                "name": "adapter.yaml (BAP)",
+                "path": "onix-adaptor/config/onix-bap/adapter.yaml"
+              },
+              {
+                "name": "adapter.yaml (BPP)",
+                "path": "onix-adaptor/config/onix-bpp/adapter.yaml"
+              }
+            ]
+          },
+          {
+            "name": "ONIX Adapter (Kafka)",
+            "path": "onix-adaptor-kafka/",
+            "readme": "onix-adaptor-kafka/README.md",
+            "description": "ONIX adapter with Kafka messaging for BAP and BPP",
+            "configFiles": [
+              {
+                "name": "config.md",
+                "path": "onix-adaptor-kafka/config.md"
+              },
+              {
+                "name": "adapter.yaml (BAP)",
+                "path": "onix-adaptor-kafka/config/onix-bap/adapter.yaml"
+              },
+              {
+                "name": "adapter.yaml (BPP)",
+                "path": "onix-adaptor-kafka/config/onix-bpp/adapter.yaml"
+              }
+            ]
+          },
+          {
+            "name": "ONIX Adapter (RabbitMQ)",
+            "path": "onix-adaptor-rabbitMQ/",
+            "readme": "onix-adaptor-rabbitMQ/README.md",
+            "description": "ONIX adapter with RabbitMQ messaging for BAP and BPP",
+            "configFiles": [
+              {
+                "name": "config.md",
+                "path": "onix-adaptor-rabbitMQ/config.md"
+              },
+              {
+                "name": "adapter.yaml (BAP)",
+                "path": "onix-adaptor-rabbitMQ/config/onix-bap/adapter.yaml"
+              },
+              {
+                "name": "adapter.yaml (BPP)",
+                "path": "onix-adaptor-rabbitMQ/config/onix-bpp/adapter.yaml"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "category": "Helm/Kubernetes Deployments",
+        "icon": "☸️",
+        "description": "Helm charts for Kubernetes deployments of BAP and BPP",
+        "items": [
+          {
+            "name": "Helm Charts (REST API)",
+            "path": "helm/",
+            "readme": "helm/README.md",
+            "description": "Helm charts for BAP and BPP with REST API",
+            "configFiles": [
+              {
+                "name": "config.md",
+                "path": "helm/config.md"
+              },
+              {
+                "name": "values.yaml",
+                "path": "helm/values.yaml"
+              },
+              {
+                "name": "values-bap.yaml",
+                "path": "helm/values-bap.yaml"
+              },
+              {
+                "name": "values-bpp.yaml",
+                "path": "helm/values-bpp.yaml"
+              },
+              {
+                "name": "Chart.yaml",
+                "path": "helm/Chart.yaml"
+              }
+            ]
+          },
+          {
+            "name": "Helm Charts (Kafka)",
+            "path": "helm-kafka/",
+            "readme": "helm-kafka/README.md",
+            "description": "Helm charts for BAP and BPP with Kafka integration",
+            "configFiles": [
+              {
+                "name": "config.md",
+                "path": "helm-kafka/config.md"
+              },
+              {
+                "name": "values.yaml",
+                "path": "helm-kafka/values.yaml"
+              },
+              {
+                "name": "values-bap.yaml",
+                "path": "helm-kafka/values-bap.yaml"
+              },
+              {
+                "name": "values-bpp.yaml",
+                "path": "helm-kafka/values-bpp.yaml"
+              }
+            ]
+          },
+          {
+            "name": "Helm Charts (RabbitMQ)",
+            "path": "helm-rabbitmq/",
+            "readme": "helm-rabbitmq/README.md",
+            "description": "Helm charts for BAP and BPP with RabbitMQ integration",
+            "configFiles": [
+              {
+                "name": "config.md",
+                "path": "helm-rabbitmq/config.md"
+              },
+              {
+                "name": "values.yaml",
+                "path": "helm-rabbitmq/values.yaml"
+              },
+              {
+                "name": "values-bap.yaml",
+                "path": "helm-rabbitmq/values-bap.yaml"
+              },
+              {
+                "name": "values-bpp.yaml",
+                "path": "helm-rabbitmq/values-bpp.yaml"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "category": "Individual Service Charts",
+        "icon": "📦",
+        "description": "Individual Helm charts for BAP and BPP services",
+        "items": [
+          {
+            "name": "BAP Chart (REST)",
+            "path": "charts/bap/",
+            "readme": "charts/bap/README.md",
+            "description": "Helm chart for BAP service with REST API",
+            "configFiles": [
+              {
+                "name": "values.yaml",
+                "path": "charts/bap/values.yaml"
+              }
+            ]
+          },
+          {
+            "name": "BPP Chart (REST)",
+            "path": "charts/bpp/",
+            "readme": "charts/bpp/README.md",
+            "description": "Helm chart for BPP service with REST API"
+          },
+          {
+            "name": "BAP Chart (Kafka)",
+            "path": "charts/bap-kafka/",
+            "readme": "charts/bap-kafka/README.md",
+            "description": "Helm chart for BAP service with Kafka"
+          },
+          {
+            "name": "BPP Chart (Kafka)",
+            "path": "charts/bpp-kafka/",
+            "readme": "charts/bpp-kafka/README.md",
+            "description": "Helm chart for BPP service with Kafka"
+          },
+          {
+            "name": "BAP Chart (RabbitMQ)",
+            "path": "charts/bap-rabbitmq/",
+            "readme": "charts/bap-rabbitmq/README.md",
+            "description": "Helm chart for BAP service with RabbitMQ",
+            "configFiles": [
+              {
+                "name": "values.yaml",
+                "path": "charts/bap-rabbitmq/values.yaml"
+              }
+            ]
+          },
+          {
+            "name": "BPP Chart (RabbitMQ)",
+            "path": "charts/bpp-rabbitmq/",
+            "readme": "charts/bpp-rabbitmq/README.md",
+            "description": "Helm chart for BPP service with RabbitMQ",
+            "configFiles": [
+              {
+                "name": "values.yaml",
+                "path": "charts/bpp-rabbitmq/values.yaml"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

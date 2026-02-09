@@ -1,0 +1,10 @@
+server:
+  port: ":9001"
+
+defaults:
+  version: "1.0.0"
+  country_code: "IND"
+  city_code: "std:080"
+  bpp_id: "ev-charging.sandbox2.com"
+  bpp_uri: "http://onix-bpp-plugin:8002"
+

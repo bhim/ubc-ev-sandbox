@@ -1,0 +1,100 @@
+version: '3.9'
+
+services:
+  # Zookeeper for Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    pull_policy: always
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - onix-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Kafka Message Broker
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    pull_policy: always
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - onix-network
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis for onix-bap-plugin-kafka
+  redis-bap:
+    image: redis:alpine
+    pull_policy: always
+    container_name: redis-bap
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass your-redis-password
+    networks:
+      - onix-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "your-redis-password", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Onix BAP Kafka Plugin
+  onix-bap-plugin-kafka:
+    # Use pre-built image from Docker Hub
+    image: manendrapalsingh/onix-adapter:v0.9.3
+    pull_policy: always
+    container_name: onix-bap-plugin-kafka
+    ports:
+      - "8001:8001"  # HTTP port for bapTxnReceiver endpoint
+    volumes:
+      # Mount config directory (writable for symlink creation, but original files won't be modified)
+      - ${CONFIG_PATH:-./config}/onix-bap:/app/config
+      # Mount schema directory (read-only)
+      - ../../schemas:/app/schemas:ro
+    environment:
+      - CONFIG_FILE=/app/config/adapter.yaml
+      - REDIS_PASSWORD=your-redis-password
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis-bap:
+        condition: service_healthy
+    networks:
+      - onix-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+networks:
+  onix-network:
+    driver: bridge
+

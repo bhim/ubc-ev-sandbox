@@ -1,0 +1,13 @@
+apiVersion: v2
+name: onix-bap-kafka
+description: A Helm chart for ONIX BAP adapter deployment with Kafka
+type: application
+version: 0.1.0
+appVersion: "latest"
+keywords:
+  - onix
+  - bap
+  - ev-charging
+  - kafka
+maintainers:
+  - name: NBSL TEAM

@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "onix-bap.fullname" . }}-bap-config
+  labels:
+    {{- include "onix-bap.labels" . | nindent 4 }}
+    component: bap
+data:
+  bap_caller_routing.yaml: |
+{{ .Values.config.routing.caller | indent 4 }}
+  bap_receiver_routing.yaml: |
+{{ .Values.config.routing.receiver | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "onix-bap.fullname" . }}-bap-adapter
+  labels:
+    {{- include "onix-bap.labels" . | nindent 4 }}
+    component: bap
+data:
+  adapter.yaml: |
+{{- $redisHost := .Values.redis.host | default "redis:6379" }}
+{{- $adapterConfig := .Values.config.adapter | replace "REDIS_HOST_PLACEHOLDER" $redisHost }}
+{{ $adapterConfig | indent 4 }}

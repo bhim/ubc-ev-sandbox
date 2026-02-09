@@ -1,0 +1,7 @@
+apiVersion: v2
+name: mock-bpp
+description: Helm chart for Mock BPP Service
+type: application
+version: 0.1.0
+appVersion: latest
+

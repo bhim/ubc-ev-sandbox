@@ -1,0 +1,16 @@
+apiVersion: v2
+name: onix-rabbitmq
+description: Helm chart for onix-adaptor with RabbitMQ (BAP/BPP). Deploys the ONIX adapters as in onix-adaptor-rabbitMQ using manendrapalsingh/onix-adapter, with RabbitMQ and Redis as chart dependencies.
+type: application
+version: 0.1.0
+appVersion: "v0.9.3"
+keywords:
+  - onix
+  - onix-adaptor
+  - bap
+  - bpp
+  - ev-charging
+  - rabbitmq
+maintainers:
+  - name: NBSL TEAM
+

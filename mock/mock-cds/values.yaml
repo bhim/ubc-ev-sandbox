@@ -1,0 +1,64 @@
+# Default values for mock-cds
+fullnameOverride: mock-cds
+
+image:
+  repository: manendrapalsingh/mock-cds
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 8082
+  targetPort: 8082
+
+config:
+  server:
+    port: ":8082"
+  
+  registry:
+    host: "mock-registry"
+    port: "3030"
+    lookup_path: "/lookup"
+  
+  cds:
+    signing:
+      private_key: "o33NCO6dqo+MopQEA7cmRFm4544XkHfbAktjvaCCi7U="
+      public_key: "CN+5/VZC6wWwEEH9Wa5JeWsjAD4VI8OCEZ53+TcDBTM="
+      subscriber_id: "mock-cds"
+      key_id: "cds-key-1"
+  
+  endpoints:
+    bpps:
+      - host: "onix-bpp-service"
+        port: "8002"
+        discover_path: "/bpp/receiver/discover"
+        subscriber_id: "onix-bpp"
+  
+  timing:
+    broadcast_discover_delay_ms: 500
+    aggregate_response_delay_ms: 1000
+    signature_expiry_minutes: 5
+  
+  defaults:
+    version: "2.0.0"
+    domain: "beckn.one:deg:ev-charging"
+    country_code: "IND"
+    city_code: "std:080"
+    default_gps: "12.9352,77.6245"
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "200m"
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+

@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "onix-rabbitmq.fullname" . }}-{{ .Values.component }}
+  labels:
+    {{- include "onix-rabbitmq.labels" . | nindent 4 }}
+    component: {{ .Values.component }}
+spec:
+  replicas: {{ .Values.replicaCount | default 1 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "onix-rabbitmq.selectorLabels" . | nindent 6 }}
+      component: {{ .Values.component }}
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "onix-rabbitmq.selectorLabels" . | nindent 8 }}
+        component: {{ .Values.component }}
+    spec:
+      initContainers:
+      - name: wait-for-rabbitmq
+        image: busybox:latest
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for RabbitMQ to be ready..."
+          {{- if .Values.rabbitmq.broker }}
+          RABBITMQ_BROKER="{{ .Values.rabbitmq.broker }}"
+          RABBITMQ_HOST="${RABBITMQ_BROKER%%:*}"
+          RABBITMQ_PORT="${RABBITMQ_BROKER##*:}"
+          if [ -z "$RABBITMQ_PORT" ] || [ "$RABBITMQ_PORT" = "$RABBITMQ_BROKER" ]; then
+            RABBITMQ_PORT="5672"
+          fi
+          {{- else if .Values.rabbitmq.enabled }}
+          RABBITMQ_HOST="{{ include "onix-rabbitmq.fullname" . }}-rabbitmq"
+          RABBITMQ_PORT="5672"
+          {{- else }}
+          RABBITMQ_HOST="ev-charging-rabbitmq-bap-onix-rabbitmq-rabbitmq"
+          RABBITMQ_PORT="5672"
+          {{- end }}
+          until nc -z $RABBITMQ_HOST $RABBITMQ_PORT; do
+            echo "Waiting for RabbitMQ at $RABBITMQ_HOST:$RABBITMQ_PORT..."
+            sleep 2
+          done
+          echo "RabbitMQ is ready!"
+      containers:
+      - name: {{ .Values.component }}-plugin-rabbitmq
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.service.targetPort }}
+          protocol: TCP
+        env:
+        {{- range .Values.env }}
+        - name: {{ .name }}
+          {{- if .value }}
+          value: {{ .value | quote }}
+          {{- else if .valueFrom }}
+          valueFrom:
+            {{- toYaml .valueFrom | nindent 12 }}
+          {{- end }}
+        {{- end }}
+        {{- if .Values.redis.password }}
+        - name: REDIS_PASSWORD
+          value: {{ .Values.redis.password | quote }}
+        {{- end }}
+        - name: CONFIG_FILE
+          value: /app/config/adapter.yaml
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+        {{- if .Values.resources }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "onix-rabbitmq.fullname" . }}-{{ .Values.component }}-config
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+

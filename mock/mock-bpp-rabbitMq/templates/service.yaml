@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "mock-bpp-rabbitmq.fullname" . }}
+  labels:
+    {{- include "mock-bpp-rabbitmq.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "mock-bpp-rabbitmq.selectorLabels" . | nindent 4 }}

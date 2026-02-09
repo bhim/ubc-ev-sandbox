@@ -1,0 +1,12 @@
+apiVersion: v2
+name: onix-bpp
+description: A Helm chart for ONIX BPP adapter deployment (REST API)
+type: application
+version: 0.1.0
+appVersion: "latest"
+keywords:
+  - onix
+  - bpp
+  - ev-charging
+maintainers:
+  - name: NBSL TEAM

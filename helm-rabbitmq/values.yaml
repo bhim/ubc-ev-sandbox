@@ -1,0 +1,613 @@
+# Default values for onix-rabbitmq
+# This is a YAML-formatted file.
+
+# Application configuration
+appName: onix-ev-charging
+component: bap  # bap or bpp
+
+# Service URLs for routing
+# These are used when targetType is "bpp" or "bap" in routing configuration
+serviceUrls:
+  bpp: "http://ev-charging-rabbitmq-bpp-onix-rabbitmq-bpp-service:8002"
+  bap: "http://ev-charging-rabbitmq-bap-onix-rabbitmq-bap-service:8001"
+
+# Image configuration (onix-adapter: single image for both BAP and BPP, as in onix-adaptor-rabbitMQ)
+image:
+  repository: manendrapalsingh/onix-adapter
+  tag: v0.9.3
+  pullPolicy: IfNotPresent
+
+# Replica count
+replicaCount: 1
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8001
+  targetPort: 8001
+
+# RabbitMQ configuration
+# RabbitMQ is a required dependency for ONIX RabbitMQ adapters
+rabbitmq:
+  enabled: true
+  image:
+    repository: rabbitmq
+    tag: 3-management-alpine
+  service:
+    amqpPort: 5672
+    managementPort: 15672
+  username: admin
+  password: admin
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  persistence:
+    enabled: false
+    size: 10Gi
+    storageClass: ""
+
+# Redis configuration
+# Redis is a required dependency for ONIX RabbitMQ adapters
+redis:
+  enabled: true
+  # Optional: when set, redis-server uses --requirepass and adapter receives REDIS_PASSWORD env
+  password: ""
+  image:
+    repository: redis
+    tag: alpine
+  service:
+    port: 6379
+    targetPort: 6379
+  persistence:
+    enabled: false
+    size: 10Gi
+    storageClass: ""
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  healthcheck:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 5
+
+# Application resources
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "500m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+
+# Environment variables
+env:
+  # Note: CONFIG_FILE is set in the deployment template using .Values.component
+  - name: RABBITMQ_USERNAME
+    value: admin
+  - name: RABBITMQ_PASSWORD
+    value: admin
+
+# Retry configuration
+retry:
+  # Maximum number of retry attempts for various operations
+  maxRetries: 3
+  # Registry plugin retry configuration
+  registry:
+    maxRetries: 3
+    waitMin: "100ms"
+    waitMax: "500ms"
+  # RabbitMQ retry configuration
+  rabbitmq:
+    # Connection retry configuration
+    # Used when establishing connection to RabbitMQ broker
+    connection:
+      maxRetries: 3
+      retryDelay: "1s"
+      initialDelay: "100ms"
+    # Consumer retry configuration (for message processing failures)
+    # When a message processing fails, it will be NACKed and requeued
+    # This controls how many times a message can be retried before being sent to DLQ
+    consumer:
+      maxRetries: 3
+      retryDelay: "1s"
+      # Requeue failed messages (true) or send to dead letter queue (false)
+      # Note: RabbitMQ consumer uses autoAck: false with manual acknowledgment
+      # Failed messages are NACKed with requeue=true for retry
+      requeue: true
+    # Publisher retry configuration (for publish failures)
+    # Used when publishing messages to RabbitMQ exchange fails
+    publisher:
+      maxRetries: 3
+      retryDelay: "1s"
+      initialDelay: "100ms"
+
+# Configuration files (from onix-adaptor-rabbitMQ; configmap applies substitutions for Redis, RabbitMQ, and BPP)
+config:
+  # Optional: override for K8s service DNS (used in adapter and routing)
+  registryUrl: "http://mock-registry:3030"
+  cdsUrl: "http://mock-cds:8082"
+
+  # BAP adapter (baseline); configmap transforms to BPP when component=bpp
+  adapter: |
+    appName: "onix-ev-charging"
+
+    log:
+      level: debug
+      destinations:
+        - type: stdout
+      contextKeys:
+        - transaction_id
+        - message_id
+        - subscriber_id
+        - module_id
+
+    http:
+      port: 8001
+      timeout:
+        read: 30
+        write: 30
+        idle: 30
+
+    pluginManager:
+      root: /app/plugins
+
+    plugins:
+      otelsetup:
+        id: otelsetup
+        config:
+          serviceName: "beckn-onix"
+          serviceVersion: "1.0.0"
+          enableMetrics: "true"
+          environment: "development"
+          metricsPort: "9003"
+
+    modules:
+      - name: bapTxnReceiver
+        path: /bap/receiver/
+        handler:
+          type: std
+          role: bap
+          subscriberId: ev-charging.sandbox1.com
+          httpClientConfig:
+            maxIdleConns: 1000
+            maxIdleConnsPerHost: 200
+            idleConnTimeout: 300s
+            responseHeaderTimeout: 5s
+          plugins:
+            registry:
+              id: registry
+              config:
+                url: http://mock-registry:3030
+                retry_max: 3
+                retry_wait_min: 100ms
+                retry_wait_max: 500ms
+            keyManager:
+              id: simplekeymanager
+              config:
+                networkParticipant: ev-charging.sandbox1.com
+                keyId: bap-key-1
+                signingPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
+                signingPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+                encrPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
+                encrPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+            cache:
+              id: cache
+              config:
+                addr: redis-bap:6379
+            schemaValidator:
+              id: schemav2validator
+              config:
+                type: url
+                location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
+                cacheTTL: "3600"
+            signValidator:
+              id: signvalidator
+            router:
+              id: router
+              config:
+                routingConfig: /app/config/bapTxnReciever-routing.yaml
+            publisher:
+              id: publisher
+              config:
+                addr: rabbitmq:5672
+                exchange: beckn_exchange
+                durable: "true"
+                username: guest
+                password: guest
+            middleware:
+              - id: reqpreprocessor
+                config:
+                  uuidKeys: transaction_id,message_id
+                  role: bap
+        steps:
+          - validateSign
+          - validateSchema
+          - addRoute
+
+      - name: bapTxnCaller
+        path: ""
+        handler:
+          type: queue
+          role: bap
+          subscriberId: ev-charging.sandbox1.com
+          httpClientConfig:
+            maxIdleConns: 1000
+            maxIdleConnsPerHost: 200
+            idleConnTimeout: 300s
+            responseHeaderTimeout: 5s
+          plugins:
+            registry:
+              id: registry
+              config:
+                url: http://mock-registry:3030
+                retry_max: 3
+                retry_wait_min: 100ms
+                retry_wait_max: 500ms
+            keyManager:
+              id: simplekeymanager
+              config:
+                networkParticipant: ev-charging.sandbox1.com
+                keyId: bap-key-1
+                signingPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
+                signingPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+                encrPrivateKey: xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=
+                encrPublicKey: MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=
+            cache:
+              id: cache
+              config:
+                addr: redis-bap:6379
+            schemaValidator:
+              id: schemav2validator
+              config:
+                type: url
+                location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
+                cacheTTL: "3600"
+            consumer:
+              id: consumer
+              config:
+                subscriberId: ev-charging.sandbox1.com
+                role: bap
+                consumerType: rabbitmq
+                consumerThreads: "2"
+                consumer.id: rabbitmqconsumer
+                consumer.addr: rabbitmq:5672
+                consumer.exchange: beckn_exchange
+                consumer.routingKeys: "bap.discover,bap.select,bap.init,bap.confirm,bap.status,bap.track,bap.cancel,bap.update,bap.rating,bap.support"
+                consumer.queueName: "bap_caller_queue"
+                consumer.durable: "true"
+                consumer.autoDelete: "false"
+                consumer.exclusive: "false"
+                consumer.noWait: "false"
+                consumer.autoAck: "false"
+                consumer.prefetchCount: "10"
+                consumer.maxRetry: "3"
+                consumer.queueArgs: ""
+                consumer.username: guest
+                consumer.password: guest
+                steps: '["addRoute", "validateSchema", "sign"]'
+            router:
+              id: router
+              config:
+                routingConfig: /app/config/bapTxnCaller-routing.yaml
+            publisher:
+              id: publisher
+              config:
+                addr: rabbitmq:5672
+                exchange: beckn_exchange
+                durable: "true"
+                username: guest
+                password: guest
+            signer:
+              id: signer
+            middleware:
+              - id: reqpreprocessor
+                config:
+                  uuidKeys: transaction_id,message_id
+                  role: bap
+        steps:
+          - validateSchema
+          - addRoute
+          - sign
+
+  routing:
+    caller: |
+      # ONIX BAP Caller Routing Configuration
+      routingRules:
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://mock-cds:8082/csd
+            excludeAction: false
+          endpoints:
+            - discover
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: bpp
+          target: {}
+          endpoints:
+            - select
+            - init
+            - confirm
+            - status
+            - track
+            - cancel
+            - update
+            - rating
+            - support
+
+    receiver: |
+      # ONIX BAP Receiver Routing Configuration
+      routingRules:
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_discover
+          endpoints:
+            - on_discover
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_select
+          endpoints:
+            - on_select
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_init
+          endpoints:
+            - on_init
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_confirm
+          endpoints:
+            - on_confirm
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_status
+          endpoints:
+            - on_status
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_track
+          endpoints:
+            - on_track
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_cancel
+          endpoints:
+            - on_cancel
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_update
+          endpoints:
+            - on_update
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_rating
+          endpoints:
+            - on_rating
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_support
+          endpoints:
+            - on_support
+
+    # BPP routing (used when component=bpp)
+    callerBpp: |
+      # BPP Caller Routing Configuration
+      routingRules:
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://mock-cds:8082/csd
+            excludeAction: false
+          endpoints:
+            - on_discover
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: bap
+          target: {}
+          endpoints:
+            - on_select
+            - on_init
+            - on_confirm
+            - on_status
+            - on_track
+            - on_cancel
+            - on_update
+            - on_rating
+            - on_support
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://mock-cds:8082/csd/catalog_publish
+            excludeAction: false
+          endpoints:
+            - catalog_publish
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: bap
+          target: {}
+          endpoints:
+            - on_catalog_publish
+
+    receiverBpp: |
+      # BPP Receiver Routing Configuration
+      routingRules:
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.discover
+          endpoints:
+            - discover
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.select
+          endpoints:
+            - select
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.init
+          endpoints:
+            - init
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.confirm
+          endpoints:
+            - confirm
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.status
+          endpoints:
+            - status
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.track
+          endpoints:
+            - track
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.cancel
+          endpoints:
+            - cancel
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.update
+          endpoints:
+            - update
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.rating
+          endpoints:
+            - rating
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bpp.support
+          endpoints:
+            - support
+
+  # plugin.yaml (shared BAP/BPP, from onix-adaptor-rabbitMQ)
+  plugin: |
+    plugins:
+      - registry
+      - simplekeymanager
+      - cache
+      - schemavalidator
+      - signvalidator
+      - router
+      - publisher
+      - rabbitmqconsumer
+      - queuehandler
+      - signer
+      - reqpreprocessor
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Pod annotations
+podAnnotations: {}
+
+# Service annotations
+serviceAnnotations: {}
+
+# Mock services configuration
+# Note: Mock services are deployed via sandbox chart, not here
+mockServices:
+  enabled: false
+  registry:
+    enabled: false
+    image:
+      repository: manendrapalsingh/mock-registry
+      tag: latest
+    service:
+      type: ClusterIP
+      port: 3030
+    config: ""
+  cds:
+    enabled: false
+    image:
+      repository: manendrapalsingh/mock-cds
+      tag: latest
+    service:
+      type: ClusterIP
+      port: 8082
+    config: ""
+  bapRabbitMQ:
+    enabled: false
+    image:
+      repository: manendrapalsingh/mock-bap-rabbit-mq
+      tag: latest
+    config: ""
+    defaults:
+      version: "2.0.0"
+      country_code: "IND"
+      city_code: "std:080"
+      subscriber_id: "ev-charging.sandbox1.com"
+  bppRabbitMQ:
+    enabled: false
+    image:
+      repository: manendrapalsingh/mock-bpp-rabbit-mq
+      tag: latest
+    config: ""
+    defaults:
+      version: "2.0.0"
+      country_code: "IND"
+      city_code: "std:080"
+      subscriber_id: "ev-charging.sandbox2.com"
+

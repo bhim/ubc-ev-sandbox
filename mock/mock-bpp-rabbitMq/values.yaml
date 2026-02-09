@@ -1,0 +1,63 @@
+# Default values for mock-bpp-rabbitmq
+fullnameOverride: mock-bpp-rabbit-mq
+
+image:
+  repository: manendrapalsingh/mock-bpp-rabbit-mq
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 9004
+  targetPort: 9004
+
+config:
+  rabbitmq:
+    url: "amqp://admin:admin@onix-rabbitmq:5672/"
+    exchange: "beckn_exchange"
+    username: "admin"
+    password: "admin"
+  
+  server:
+    port: ":9004"
+  
+  defaults:
+    version: "2.0.0"
+    country_code: "IND"
+    city_code: "std:080"
+    subscriber_id: "ev-charging.sandbox2.com"
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "200m"
+
+# Health probe configuration
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

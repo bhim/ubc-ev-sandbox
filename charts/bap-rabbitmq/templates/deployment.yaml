@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "onix-bap-rabbitmq.fullname" . }}-bap
+  labels:
+    {{- include "onix-bap-rabbitmq.labels" . | nindent 4 }}
+    component: bap
+spec:
+  replicas: {{ .Values.replicaCount | default 1 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "onix-bap-rabbitmq.selectorLabels" . | nindent 6 }}
+      component: bap
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "onix-bap-rabbitmq.selectorLabels" . | nindent 8 }}
+        component: bap
+    spec:
+      containers:
+      - name: bap-plugin-rabbitmq
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.service.targetPort }}
+          protocol: TCP
+        env:
+        {{- range .Values.env }}
+        - name: {{ .name }}
+          {{- if .value }}
+          value: {{ .value | quote }}
+          {{- else if .valueFrom }}
+          valueFrom:
+            {{- toYaml .valueFrom | nindent 12 }}
+          {{- end }}
+        {{- end }}
+        - name: CONFIG_FILE
+          value: /app/config/adapter.yaml
+        {{- if .Values.rabbitmq.broker }}
+        - name: RABBITMQ_BROKER
+          value: {{ .Values.rabbitmq.broker | quote }}
+        {{- end }}
+        {{- if .Values.rabbitmq.username }}
+        - name: RABBITMQ_USERNAME
+          value: {{ .Values.rabbitmq.username | quote }}
+        {{- end }}
+        {{- if .Values.rabbitmq.password }}
+        - name: RABBITMQ_PASSWORD
+          value: {{ .Values.rabbitmq.password | quote }}
+        {{- end }}
+        {{- if .Values.redis.host }}
+        - name: REDIS_HOST
+          value: {{ .Values.redis.host | quote }}
+        {{- end }}
+        {{- if .Values.redis.password }}
+        - name: REDIS_PASSWORD
+          value: {{ .Values.redis.password | quote }}
+        {{- end }}
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+        {{- if .Values.resources }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "onix-bap-rabbitmq.fullname" . }}-bap-config
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mock-bpp-kafka.fullname" . }}-config
+  labels:
+    {{- include "mock-bpp-kafka.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+{{ toYaml .Values.config | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mock-bpp-kafka.fullname" . }}-responses
+  labels:
+    {{- include "mock-bpp-kafka.labels" . | nindent 4 }}
+data:
+  message.json: |
+{{ .Files.Get "message.json" | indent 4 }}

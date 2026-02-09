@@ -2,6 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker](https://img.shields.io/badge/Docker-Supported-blue.svg)](https://www.docker.com/)
+[![ONIX Adapter](https://img.shields.io/badge/ONIX%20Adapter-v0.9.3-blue.svg)](https://github.com/Beckn-One/beckn-onix)
 
 **A comprehensive sandbox environment for testing and developing EV Charging network integrations using the ONIX protocol adapter (Beckn-ONIX) with BAP and BPP applications**
 
@@ -14,8 +15,6 @@
 - [Quick Start](#quick-start)
 - [Architecture](#architecture)
 - [Repository Structure](#repository-structure)
-- [Configuration](#configuration)
-- [Usage Examples](#usage-examples)
 - [Documentation](#documentation)
 - [Contributing](#contributing)
 - [Support](#support)
@@ -43,30 +42,25 @@ The **onix-adapter** is a production-ready, plugin-based middleware adapter for 
 
 ## Features
 
-### Complete Sandbox Environment
+### Multiple Deployment Options
 
-- **Full Testing Environment**: Pre-configured complete sandbox with ONIX adapters, mock services, and infrastructure
+- **Docker Compose**: Local development with REST API, Kafka, or RabbitMQ
+- **Helm Charts**: Kubernetes deployment for REST API, Kafka, or RabbitMQ
+- **Complete Sandbox**: Full testing environment with ONIX adapters and mock services
 - **Standalone Adapters**: Deploy only ONIX adapters for integration with your own services
-- **Mock Services**: Simulated BAP, BPP, CDS, and Registry services for testing
 
-### Architecture
+### Communication Patterns
 
-- **REST API Communication**: Asynchronous HTTP/REST messaging for real-time interactions
-- **Redis Caching**: Performance optimization and async state management
-- **Docker Compose**: Easy local development and testing setup
+- **REST API**: Synchronous HTTP/REST messaging (default)
+- **Kafka**: Asynchronous message-based communication with Kafka topics
+- **RabbitMQ**: Asynchronous message-based communication with RabbitMQ queues
 
 ### Enterprise-Ready
 
 - **Ed25519 Digital Signatures**: Cryptographically secure message signing and validation
-- **JSON Schema Validation**: Ensures protocol compliance using schemas from `schemas/` directory
-- **Configurable Routing**: YAML-based routing rules
-- **Structured Logging**: JSON-formatted logs with transaction tracking
-
-### Production Features
-
-- **Health Checks**: Liveness and readiness probes for all services
-- **Environment-Specific Configs**: Separate configurations for different services
-- **API Collections**: Postman collections and Swagger specifications for all APIs
+- **JSON Schema Validation**: Protocol compliance using URL-based schema validation
+- **Configurable Routing**: YAML-based routing rules with Phase 1 (CDS) and Phase 2+ (direct) support
+- **Production Features**: Health checks, secret management, OpenTelemetry metrics, structured logging
 
 ---
 
@@ -74,166 +68,104 @@ The **onix-adapter** is a production-ready, plugin-based middleware adapter for 
 
 ### Prerequisites
 
-- Docker Engine 20.10 or higher
-- Docker Compose 2.0 or higher
+- **Docker**: Docker Engine 20.10+ and Docker Compose 2.0+ (for Docker deployments)
+- **Kubernetes**: Kubernetes cluster v1.20+ and Helm 3.x (for Helm deployments)
 
-### Recommended Starting Point
+### Deployment Options
 
-#### Option 1: Complete Sandbox Environment (Recommended for Testing)
+#### Docker Compose (Local Development)
 
-Start with the **Complete Sandbox** for a full testing environment with all services:
+- **REST API**: See [Sandbox Guide](./sandbox/README.md) - Complete sandbox with REST API
+- **Kafka**: See [Sandbox Kafka Guide](./sandbox-kafka/README.md) - Kafka-based messaging
+- **RabbitMQ**: See [Sandbox RabbitMQ Guide](./sandbox-rabbitMQ/README.md) - RabbitMQ-based messaging
+- **Standalone Adapters**: See [ONIX Adapter Guide](./onix-adaptor/README.md) - Deploy only adapters
 
-```bash
-# Navigate to the sandbox directory
-cd sandbox
+#### Helm Charts (Kubernetes)
 
-# Start all services (ONIX adapters, mock services, Redis)
-docker-compose up -d
-
-# Verify services are running
-docker-compose ps
-
-# View logs
-docker-compose logs -f
-
-# Stop all services
-docker-compose down
-```
-
-For detailed instructions, see: **[Sandbox Guide](./sandbox/README.md)**
-
-**Available Endpoints:**
-- **ONIX BAP**: `http://localhost:8001/bap/caller/{action}` and `http://localhost:8001/bap/receiver/{action}`
-- **ONIX BPP**: `http://localhost:8002/bpp/caller/{action}` and `http://localhost:8002/bpp/receiver/{action}`
-- **Mock Registry**: `http://localhost:3030`
-- **Mock CDS**: `http://localhost:8082`
-- **Mock BAP**: `http://localhost:9001`
-- **Mock BPP**: `http://localhost:9002`
-
-#### Option 2: Standalone ONIX Adapters
-
-For deploying only the ONIX adapters without mock services:
-
-**BAP Adapter:**
-```bash
-# Navigate to the onix-adaptor directory
-cd onix-adaptor
-
-# Start BAP services
-docker-compose -f docker-compose-onix-bap-plugin.yml up -d
-
-# Verify services are running
-docker-compose -f docker-compose-onix-bap-plugin.yml ps
-
-# View logs
-docker-compose -f docker-compose-onix-bap-plugin.yml logs -f onix-bap-plugin
-
-# Stop services
-docker-compose -f docker-compose-onix-bap-plugin.yml down
-```
-
-**BPP Adapter:**
-```bash
-# Navigate to the onix-adaptor directory
-cd onix-adaptor
-
-# Start BPP services
-docker-compose -f docker-compose-onix-bpp-plugin.yml up -d
-
-# Verify services are running
-docker-compose -f docker-compose-onix-bpp-plugin.yml ps
-
-# View logs
-docker-compose -f docker-compose-onix-bpp-plugin.yml logs -f onix-bpp-plugin
-
-# Stop services
-docker-compose -f docker-compose-onix-bpp-plugin.yml down
-```
-
-For detailed instructions, see: **[ONIX Adapter Integration Guide](./onix-adaptor/README.md)**
+- **REST API**: See [Helm Chart Guide](./helm/README.md) - REST API deployment
+- **Kafka**: See [Helm Kafka Guide](./helm-kafka/README.md) - Kafka integration with KRaft mode
+- **RabbitMQ**: See [Helm RabbitMQ Guide](./helm-rabbitmq/README.md) - RabbitMQ integration
+- **Complete Sandbox (Kafka)**: See [Helm Sandbox Kafka Guide](./helm-sandbox-kafka/README.md) - Full sandbox with Kafka
 
 ---
 
 ## Architecture
 
-### Integration Flow
+### Communication Patterns
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Integration Architecture                  │
-└─────────────────────────────────────────────────────────────┘
+The sandbox supports three communication patterns:
 
-Phase 1: Discovery (Aggregation via CDS)
-┌────────┐         ┌──────────────┐         ┌─────────┐
-│  BAP   │ ──────> │ ONIX BAP     │ ──────> │   CDS   │
-│        │         │ Caller       │         │         │
-└────────┘         └──────────────┘         └────┬────┘
-                                                  │
-                                    ┌─────────────┴─────────────┐
-                                    │   Aggregates from BPPs    │
-                                    └─────────────┬─────────────┘
-                                                  │
-┌────────┐         ┌──────────────┐         ┌────▼────┐
-│  BAP   │ <────── │ ONIX BAP     │ <────── │   CDS   │
-│        │         │ Receiver     │         │         │
-└────────┘         └──────────────┘         └─────────┘
-
-Phase 2+: Direct BPP Communication
-┌────────┐         ┌──────────────┐         ┌──────────────┐         ┌────────┐
-│  BAP   │ ──────> │ ONIX BAP     │ ──────> │ ONIX BPP     │ ──────> │  BPP   │
-│        │         │ Caller       │         │ Receiver     │         │        │
-└────────┘         └──────────────┘         └──────────────┘         └────┬───┘
-                                                                            │
-┌────────┐         ┌──────────────┐         ┌──────────────┐         ┌────▼───┐
-│  BAP   │ <────── │ ONIX BAP     │ <────── │ ONIX BPP     │ <────── │  BPP   │
-│        │         │ Receiver     │         │ Caller       │         │        │
-└────────┘         └──────────────┘         └──────────────┘         └────────┘
-```
+1. **REST API** (Synchronous HTTP): Direct HTTP calls between services
+2. **Kafka** (Asynchronous): Message-based communication via Kafka topics
+3. **RabbitMQ** (Asynchronous): Queue-based communication via RabbitMQ exchanges
 
 ### Core Components
 
-1. **Transaction Modules**
-   - `bapTxnReceiver`: Receives callback responses at BAP
-   - `bapTxnCaller`: Sends requests from BAP to BPP/CDS
-   - `bppTxnReceiver`: Receives requests at BPP
-   - `bppTxnCaller`: Sends responses from BPP to BAP/CDS
+- **ONIX Adapters**: Protocol adapters for BAP and BPP with transaction modules (`bapTxnCaller`, `bapTxnReceiver`, `bppTxnCaller`, `bppTxnReceiver`)
+- **Mock Services**: Registry, CDS, BAP, and BPP simulators for testing
+- **Supporting Infrastructure**: Redis for caching, Kafka/RabbitMQ for messaging (when applicable)
 
-2. **Processing Pipeline**
-   - Signature validation (`validateSign`)
-   - Routing determination (`addRoute`)
-   - Schema validation (`validateSchema`)
-   - Message signing (`sign`)
+### Integration Flow
 
-3. **Plugins**
-   - Cache (Redis-based)
-   - Router (YAML-based routing)
-   - Signer/SignValidator (Ed25519)
-   - SchemaValidator (JSON schema validation)
-   - KeyManager (HashiCorp Vault or simple key management)
-   - Registry (Subscriber lookup)
+- **Phase 1 (Discovery)**: BAP → ONIX BAP → CDS → ONIX BPP → BPP (aggregated results)
+- **Phase 2+ (Transactions)**: BAP → ONIX BAP → ONIX BPP → BPP (direct communication)
 
+For detailed architecture diagrams and flow descriptions, see the individual deployment guides.
+
+
+## Repository Structure
+
+### Docker Compose Deployments
+
+- **`sandbox/`**: Complete REST API sandbox with all services
+- **`sandbox-kafka/`**: Complete Kafka-based sandbox
+- **`sandbox-rabbitMQ/`**: Complete RabbitMQ-based sandbox
+- **`onix-adaptor/`**: Standalone REST API adapters
+- **`onix-adaptor-kafka/`**: Standalone Kafka adapters
+- **`onix-adaptor-rabbitMQ/`**: Standalone RabbitMQ adapters
+
+### Helm Charts (Kubernetes)
+
+- **`helm/`**: REST API Helm chart
+- **`helm-kafka/`**: Kafka Helm chart (KRaft mode)
+- **`helm-rabbitmq/`**: RabbitMQ Helm chart
+- **`helm-sandbox-kafka/`**: Complete Kafka sandbox Helm deployment
+- **`helm-sendbox/`**: Alternative sandbox Helm deployment
+
+### Additional Resources
+
+- **`mock/`**: Mock service configurations and Helm charts
+- **`api-collection/`**: Postman collections and Swagger specifications
+- **`charts/`**: Additional Helm chart variants
 
 ## Documentation
 
-### Integration Guides
+### Docker Compose Guides
 
-- **[Sandbox Guide](./sandbox/README.md)**: Complete Docker sandbox with all services (ONIX adapters, mock services, Redis)
-- **[ONIX Adapter Integration Guide](./onix-adaptor/README.md)**: Standalone Docker-based ONIX adapter deployment
+- **[Sandbox (REST API)](./sandbox/README.md)**: Complete Docker sandbox with REST API
+- **[Sandbox Kafka](./sandbox-kafka/README.md)**: Kafka-based sandbox
+- **[Sandbox RabbitMQ](./sandbox-rabbitMQ/README.md)**: RabbitMQ-based sandbox
+- **[ONIX Adapter (REST API)](./onix-adaptor/README.md)**: Standalone REST API adapters
+- **[ONIX Adapter Kafka](./onix-adaptor-kafka/README.md)**: Standalone Kafka adapters
+- **[ONIX Adapter RabbitMQ](./onix-adaptor-rabbitMQ/README.md)**: Standalone RabbitMQ adapters
+
+### Helm Chart Guides
+
+- **[Helm Chart (REST API)](./helm/README.md)**: Kubernetes REST API deployment
+- **[Helm Kafka](./helm-kafka/README.md)**: Kafka integration on Kubernetes
+- **[Helm RabbitMQ](./helm-rabbitmq/README.md)**: RabbitMQ integration on Kubernetes
+- **[Helm Sandbox Kafka](./helm-sandbox-kafka/README.md)**: Complete Kafka sandbox on Kubernetes
 
 ### API Documentation
 
-- **[API Collection Guide](./api-collection/README.md)**: Postman collections, Swagger specifications, and field documentation
-  - **Note**: All Swagger files and Postman collections are aligned. The `location` object has been removed from the context schema as it is not part of the standard Beckn protocol context. Location information for charging stations is available in the message body (e.g., `beckn:availableAt` in catalog items, `deliveryAttributes.location` in fulfillment).
-- **[Schema Documentation](./schemas/README.md)**: JSON schema definitions for validation
+- **[API Collection Guide](./api-collection/README.md)**: Postman collections and Swagger specifications
 
-### Related Documentation
+### External Resources
 
-- **[ONIX-Adapter Repository](https://github.com/Beckn-One/beckn-onix)**: Official onix-adapter source code and documentation
-- **[ONIX Configuration Guide](https://github.com/Beckn-One/beckn-onix/blob/main/CONFIG.md)**: Detailed configuration parameters
-- **[ONIX Setup Guide](https://github.com/Beckn-One/beckn-onix/blob/main/SETUP.md)**: Installation and setup instructions
+- **[ONIX-Adapter Repository](https://github.com/Beckn-One/beckn-onix)**: Official onix-adapter source code
+- **[ONIX Configuration Guide](https://github.com/Beckn-One/beckn-onix/blob/main/CONFIG.md)**: Configuration parameters
+- **[ONIX Setup Guide](https://github.com/Beckn-One/beckn-onix/blob/main/SETUP.md)**: Installation instructions
 - **[Beckn Protocol Specifications](https://github.com/beckn/protocol-specifications)**: Protocol documentation
-
----
 
 ## Contributing
 
@@ -253,8 +185,6 @@ We welcome contributions! When contributing examples or improvements:
 - Troubleshooting sections
 - Consistent code formatting
 
----
-
 ## Support
 
 For issues, questions, or contributions:
@@ -269,22 +199,16 @@ For issues, questions, or contributions:
 - **ONIX Issues**: [Beckn-One/beckn-onix Issues](https://github.com/Beckn-One/beckn-onix/issues)
 - **UBC EV Sandbox Repo**: [bhim/ubc-ev-sandbox (Discussions & updates)](https://github.com/bhim/ubc-ev-sandbox)
 
----
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
 The onix-adapter itself is licensed under the MIT License. See the [onix-adapter LICENSE](https://github.com/Beckn-One/beckn-onix/blob/main/LICENSE) for more information.
 
----
-
 ## Acknowledgments
 
 - **[Beckn Foundation](https://beckn.org)**: For the Beckn Protocol specifications
 - **[Beckn-One](https://github.com/Beckn-One)**: For the onix-adapter project
 - All contributors to the onix-adapter and this integration guide
-
----
 
 Built with ❤️ for the open Value Network ecosystem

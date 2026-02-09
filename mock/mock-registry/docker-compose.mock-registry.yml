@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  mock-registry:
+    image: manendrapalsingh/mock-registry:latest
+    container_name: mock-registry
+    ports:
+      - "3030:3030"
+    volumes:
+      # Mount config file from host (configurable path)
+      - ../mock/mock_registry/config.yaml:/app/config/config.yaml:ro
+      # Alternative: Mount entire config directory if you have multiple config files
+      # - ../mock/mock_registry:/app/config:ro
+    environment:
+      # Optional: Override config path if mounted at different location
+      # - CONFIG_PATH=/app/config/config.yaml
+    networks:
+      - onix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3030/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  onix-network:
+    driver: bridge
+

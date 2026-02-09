@@ -9,6 +9,7 @@ log:
     - message_id
     - subscriber_id
     - module_id
+    - parent_id
 
 http:
   port: 8001
@@ -39,6 +40,7 @@ modules:
     handler:
       type: std
       role: bap
+      subscriberId: ev-charging.sandbox1.com
       httpClientConfig:
         maxIdleConns: 1000
         maxIdleConnsPerHost: 200
@@ -80,6 +82,11 @@ modules:
             type: url
             location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
             cacheTTL: "3600"
+            extendedSchema_enabled: "true"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "beckn.org,example.com,raw.githubusercontent.com"
         signValidator:
           id: signvalidator
         router:
@@ -89,7 +96,7 @@ modules:
         middleware:
           - id: reqpreprocessor
             config:
-              uuidKeys: transaction_id,message_id
+              contextKeys: transaction_id,message_id,parent_id
               role: bap
       steps:
         - validateSign
@@ -105,6 +112,7 @@ modules:
     handler:
       type: std
       role: bap
+      subscriberId: ev-charging.sandbox1.com
       httpClientConfig:
         maxIdleConns: 1000
         maxIdleConnsPerHost: 200
@@ -146,6 +154,11 @@ modules:
             type: url
             location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
             cacheTTL: "3600"
+            extendedSchema_enabled: "true"
+            extendedSchema_cacheTTL: "86400"
+            extendedSchema_maxCacheSize: "100"
+            extendedSchema_downloadTimeout: "30"
+            extendedSchema_allowedDomains: "beckn.org,example.com,raw.githubusercontent.com"
         router:
           id: router
           config:
@@ -155,7 +168,7 @@ modules:
         middleware:
           - id: reqpreprocessor
             config:
-              uuidKeys: transaction_id,message_id
+              contextKeys: transaction_id,message_id,parent_id
               role: bap
       steps:
         - validateSchema

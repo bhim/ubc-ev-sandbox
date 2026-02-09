@@ -1,0 +1,32 @@
+{
+  "context": {
+    "version": "2.0.0",
+    "action": "on_support",
+    "domain": "beckn.one:deg:ev-charging",
+    "bpp_id": "ev-charging.sandbox2.com",
+    "bpp_uri": "http://onix-bpp-service:8002/bpp/receiver",
+    "transaction_id": "550e8400-e29b-41d4-a716-446655440000",
+    "message_id": "dee432d9-36c9-4146-ad21-2f5bcac9b6a9",
+    "timestamp": "2025-01-27T12:15:30Z",
+    "ttl": "PT30S",
+    "bap_id": "ev-charging.sandbox1.com",
+    "bap_uri": "http://onix-bap-service:8001/bap/receiver"
+  },
+  "message": {
+    "support": {
+      "@context": "https://raw.githubusercontent.com/beckn/protocol-specifications-new/refs/heads/main/schema/core/v2/context.jsonld",
+      "@type": "beckn:SupportInfo",
+      "name": "BlueCharge Support Team",
+      "phone": "18001080",
+      "email": "support@bluechargenet-aggregator.io",
+      "url": "https://support.bluechargenet-aggregator.io/ticket/SUP-20250730-001",
+      "hours": "Mon–Sun 24/7 IST",
+      "channels": [
+        "PHONE",
+        "EMAIL",
+        "WEB",
+        "CHAT"
+      ]
+    }
+  }
+}

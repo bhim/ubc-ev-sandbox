@@ -1,0 +1,14 @@
+apiVersion: v2
+name: onix-api-monolithic
+description: A Helm chart for ONIX API Monolithic deployment (BAP/BPP)
+type: application
+version: 0.1.0
+appVersion: "latest"
+keywords:
+  - onix
+  - bap
+  - bpp
+  - ev-charging
+maintainers:
+  - name: NBSL TEAM
+

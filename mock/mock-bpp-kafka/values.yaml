@@ -1,0 +1,75 @@
+# Default values for mock-bpp-kafka
+fullnameOverride: mock-bpp-kafka
+
+image:
+  repository: manendrapalsingh/mock-bpp-kafka
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 9004
+  targetPort: 9004
+
+config:
+  kafka:
+    brokers: ["onix-kafka:9092"]
+    group_id: "mock-bpp-kafka-group"
+  
+  server:
+    port: ":9004"
+  
+  defaults:
+    version: "1.0.0"
+    country_code: "IND"
+    city_code: "std:080"
+    bpp_id: "mock-bpp-kafka"
+    bpp_uri: "https://mock-bpp-kafka.local"
+  
+  callbacks:
+    action_topics:
+      discover: "bap.on_discover"
+      select: "bap.on_select"
+      init: "bap.on_init"
+      confirm: "bap.on_confirm"
+      status: "bap.on_status"
+      track: "bap.on_track"
+      cancel: "bap.on_cancel"
+      update: "bap.on_update"
+      rating: "bap.on_rating"
+      support: "bap.on_support"
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "200m"
+
+# Health probe configuration
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

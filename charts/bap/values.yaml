@@ -1,0 +1,285 @@
+# Default values for onix-bap
+# This is a YAML-formatted file.
+
+# Application configuration
+appName: onix-ev-charging
+
+# Image configuration
+image:
+  repository: manendrapalsingh/onix-adapter
+  tag: v0.9.3
+  pullPolicy: IfNotPresent
+
+# Replica count
+replicaCount: 1
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8001
+  targetPort: 8001
+
+# External Redis configuration
+# Configure this to point to your external Redis instance
+redis:
+  # Redis host and port (e.g., "redis:6379" or "external-redis-service:6379")
+  # Leave empty if not using Redis
+  host: ""  # REQUIRED: Set to your Redis host:port (e.g., "redis:6379")
+  password: ""  # Optional: Redis password if required
+
+# Application resources
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+# Environment variables
+env:
+  - name: CONFIG_FILE
+    value: /app/config/adapter.yaml
+
+# Secret management configuration
+secrets:
+  enabled: false  # Set to true in production
+  secretName: ""  # Kubernetes secret name (e.g., "onix-bap-secrets")
+  # If secretName is empty or secret doesn't exist, use hardcoded values
+
+# Configuration files
+config:
+  # Keys for fallback when secrets are not enabled
+  keys:
+    signingPrivateKey: ""
+    signingPublicKey: ""
+    encrPrivateKey: ""
+    encrPublicKey: ""
+  
+  adapter: |
+    appName: "onix-ev-charging"
+    
+    log:
+      level: debug
+      destinations:
+        - type: stdout
+      contextKeys:
+        - transaction_id
+        - message_id
+        - subscriber_id
+        - module_id
+    
+    http:
+      port: 8001
+      timeout:
+        read: 30
+        write: 30
+        idle: 30
+    
+    pluginManager:
+      root: /app/plugins
+    
+    plugins:
+      otelsetup:
+        id: otelsetup
+        config:
+          serviceName: "beckn-onix"
+          serviceVersion: "1.0.0"
+          enableMetrics: "true"
+          environment: "development"
+          metricsPort: "9003"
+    
+    modules:
+      - name: bapTxnReceiver
+        path: /bap/receiver/
+        handler:
+          type: std
+          role: bap
+          httpClientConfig:
+            maxIdleConns: 1000
+            maxIdleConnsPerHost: 200
+            idleConnTimeout: 300s
+            responseHeaderTimeout: 5s
+          plugins:
+            registry:
+              id: registry
+              config:
+                url: http://mock-registry:3030
+                retry_max: 3
+                retry_wait_min: 100ms
+                retry_wait_max: 500ms
+            keyManager:
+              id: simplekeymanager
+              config:
+                networkParticipant: ev-charging.sandbox1.com
+                keyId: bap-key-1
+                signingPrivateKey: kaOxmZvVK0IdfMa+OtKZShKo9KVk4QLgCMn+Ch4QpU4=
+                signingPublicKey: ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4=
+                encrPrivateKey: kaOxmZvVK0IdfMa+OtKZShKo9KVk4QLgCMn+Ch4QpU4=
+                encrPublicKey: ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4=
+            cache:
+              id: cache
+              config:
+                addr: REDIS_HOST_PLACEHOLDER
+            schemaValidator:
+              id: schemav2validator
+              config:
+                type: url
+                location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
+                cacheTTL: "3600"
+            signValidator:
+              id: signvalidator
+            router:
+              id: router
+              config:
+                routingConfig: /app/config/bap_receiver_routing.yaml
+            middleware:
+              - id: reqpreprocessor
+                config:
+                  uuidKeys: transaction_id,message_id
+                  role: bap
+          steps:
+            - validateSign
+            - addRoute
+            - validateSchema
+    
+      - name: bapTxnCaller
+        path: /bap/caller/
+        handler:
+          type: std
+          role: bap
+          httpClientConfig:
+            maxIdleConns: 1000
+            maxIdleConnsPerHost: 200
+            idleConnTimeout: 300s
+            responseHeaderTimeout: 5s
+          plugins:
+            registry:
+              id: registry
+              config:
+                url: http://mock-registry:3030
+                retry_max: 3
+                retry_wait_min: 100ms
+                retry_wait_max: 500ms
+            keyManager:
+              id: simplekeymanager
+              config:
+                networkParticipant: ev-charging.sandbox1.com
+                keyId: bap-key-1
+                signingPrivateKey: kaOxmZvVK0IdfMa+OtKZShKo9KVk4QLgCMn+Ch4QpU4=
+                signingPublicKey: ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4=
+                encrPrivateKey: kaOxmZvVK0IdfMa+OtKZShKo9KVk4QLgCMn+Ch4QpU4=
+                encrPublicKey: ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4=
+            cache:
+              id: cache
+              config:
+                addr: REDIS_HOST_PLACEHOLDER
+            schemaValidator:
+              id: schemav2validator
+              config:
+                type: url
+                location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
+                cacheTTL: "3600"
+            router:
+              id: router
+              config:
+                routingConfig: /app/config/bap_caller_routing.yaml
+            signer:
+              id: signer
+            middleware:
+              - id: reqpreprocessor
+                config:
+                  uuidKeys: transaction_id,message_id
+                  role: bap
+          steps:
+            - validateSchema
+            - addRoute
+            - sign
+
+  routing:
+    caller: |
+      # ONIX BAP Caller Routing Configuration
+      
+      # Supports Phase 1 (Discover Aggregation) and Phase 2+ (Direct BPP Routing)
+      # Phase 1: Discover (Aggregation via CDS)
+      # Phase 2+: Other Requests (Direct to BPP, NO CDS involvement)
+      # These routes use bpp_uri from context (provided in on_discover aggregated response)
+      
+      routingRules:
+        # Phase 1: Discover to CDS
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://mock-cds:8082/csd
+            excludeAction: false
+          endpoints:
+            - discover
+      
+        # Phase 2+: Other actions to BPP (via context_endpoint)
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: bpp
+          target: {}
+          endpoints:
+            - select
+            - init
+            - confirm
+            - status
+            - track
+            - cancel
+            - update
+            - rating
+            - support
+    
+    receiver: |
+      # ONIX BAP Receiver Routing Configuration
+      
+      # Supports Phase 1 (Discover Aggregation) and Phase 2+ (Direct BPP Callbacks)
+      # Phase 1: Discover Aggregation
+      # Phase 2+: Other Callbacks (Direct from BPPs to BAP, NO CDS involvement)
+      # These routes use bap_uri from context to route callbacks back to originating BAP
+      
+      routingRules:
+        # Phase 1: on_discover callback to BAP (routed to mock-bap for testing)
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://mock-bap:9001
+            excludeAction: false
+          endpoints:
+            - on_discover
+            
+        # Phase 2+: Other callbacks to BAP (routed to mock-bap for testing)
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://mock-bap:9001
+            excludeAction: false
+          endpoints:
+            - on_select
+            - on_init
+            - on_confirm
+            - on_status
+            - on_track
+            - on_cancel
+            - on_update
+            - on_rating
+            - on_support
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Pod annotations
+podAnnotations: {}
+
+# Service annotations
+serviceAnnotations: {}

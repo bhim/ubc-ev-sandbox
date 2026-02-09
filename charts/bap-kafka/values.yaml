@@ -1,0 +1,389 @@
+# Default values for onix-bap-kafka
+# This is a YAML-formatted file.
+
+# Application configuration
+appName: onix-ev-charging
+
+# Image configuration
+image:
+  repository: manendrapalsingh/onix-adapter
+  tag: v0.9.3
+  pullPolicy: IfNotPresent
+
+# Replica count
+replicaCount: 1
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8001
+  targetPort: 8001
+
+# External Kafka configuration
+# Configure this to point to your external Kafka instance
+kafka:
+  # Kafka broker address (e.g., "kafka:9092" or "external-kafka-service:9092")
+  # Leave empty if not using Kafka
+  broker: ""  # REQUIRED: Set to your Kafka broker host:port (e.g., "kafka:9092")
+
+# External Redis configuration
+# Configure this to point to your external Redis instance
+redis:
+  # Redis host and port (e.g., "redis:6379" or "external-redis-service:6379")
+  # Leave empty if not using Redis
+  host: ""  # REQUIRED: Set to your Redis host:port (e.g., "redis:6379")
+  password: ""  # Optional: Redis password if required
+
+# Application resources
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "500m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+
+# Environment variables
+env: []
+
+# Secret management configuration
+secrets:
+  enabled: false  # Set to true in production
+  secretName: ""  # Kubernetes secret name (e.g., "onix-bap-kafka-secrets")
+  # If secretName is empty or secret doesn't exist, use hardcoded values
+
+# Configuration files
+config:
+  # Keys for fallback when secrets are not enabled
+  keys:
+    signingPrivateKey: ""
+    signingPublicKey: ""
+    encrPrivateKey: ""
+    encrPublicKey: ""
+    subscriberId: ""
+    networkParticipant: ""
+    keyId: ""
+    redisPassword: ""
+  
+  adapter: |
+    appName: "onix-ev-charging"
+    
+    log:
+      level: debug
+      destinations:
+        - type: stdout
+      contextKeys:
+        - transaction_id
+        - message_id
+        - subscriber_id
+        - module_id
+    
+    # HTTP configuration is required for bapTxnReceiver to receive HTTP requests from BPP-ONIX plugin
+    # The bapTxnReceiver module uses handler type "std" which requires HTTP server
+    http:
+      port: 8001
+      timeout:
+        read: 30
+        write: 30
+        idle: 30
+    
+    pluginManager:
+      root: /app/plugins
+    
+    plugins:
+      otelsetup:
+        id: otelsetup
+        config:
+          serviceName: "beckn-onix"
+          serviceVersion: "1.0.0"
+          enableMetrics: "true"
+          environment: "development"
+          metricsPort: "9003"
+    
+    modules:
+      # BAP Receiver - Receives HTTP requests from BPP-ONIX and publishes to BAP Backend via Kafka
+      # Phase 1: Receives on_discover from CDS with aggregated catalog
+      # Phase 2+: Receives callbacks from BPPs (on_select, on_init, on_confirm, etc.)
+      - name: bapTxnReceiver
+        path: /bap/receiver/
+        handler:
+          type: std
+          role: bap
+          subscriberId: ev-charging.sandbox1.com
+          httpClientConfig:
+            maxIdleConns: 1000
+            maxIdleConnsPerHost: 200
+            idleConnTimeout: 300s
+            responseHeaderTimeout: 5s
+          plugins:
+            registry:
+              id: registry
+              config:
+                url: http://mock-registry:3030
+                retry_max: 3
+                retry_wait_min: 100ms
+                retry_wait_max: 500ms
+            keyManager:
+              id: simplekeymanager
+              config:
+                networkParticipant: ev-charging.sandbox1.com
+                keyId: bap-key-1
+                signingPrivateKey: kaOxmZvVK0IdfMa+OtKZShKo9KVk4QLgCMn+Ch4QpU4=
+                signingPublicKey: ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4=
+                encrPrivateKey: kaOxmZvVK0IdfMa+OtKZShKo9KVk4QLgCMn+Ch4QpU4=
+                encrPublicKey: ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4=
+            cache:
+              id: cache
+              config:
+                addr: REDIS_HOST_PLACEHOLDER
+            schemaValidator:
+              id: schemav2validator
+              config:
+                type: url
+                location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
+                cacheTTL: "3600"
+            signValidator:
+              id: signvalidator
+            router:
+              id: router
+              config:
+                routingConfig: /app/config/bapTxnReciever-routing.yaml
+            publisher:
+              id: publisher
+              config:
+                type: kafka
+                brokers: KAFKA_BROKER_PLACEHOLDER
+                topic: bap.on_default
+                compressionCodec: snappy
+                acks: all
+                admin.enabled: "on"
+                admin.topicSpecs: '[{"topic":"bap.on_discover","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_select","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_init","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_confirm","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_status","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_track","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_cancel","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_update","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_rating","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_support","numPartitions":1,"replicationFactor":1},{"topic":"bap.on_default","numPartitions":1,"replicationFactor":1}]'
+            middleware:
+              - id: reqpreprocessor
+                config:
+                  uuidKeys: transaction_id,message_id
+                  role: bap
+          steps:
+            - validateSign
+            - validateSchema
+            - addRoute
+    
+      # BAP Caller - Consumes requests from BAP Backend via Kafka and routes them outward
+      # Phase 1: Routes discover to external CDS for aggregation
+      # Phase 2+: Routes other requests directly to BPP (bypasses CDS)
+      # Uses bpp_uri from context for dynamic routing in Phase 2+
+      - name: bapTxnCaller
+        path: ""  # path is not used for queue handlers
+        handler:
+          type: queue
+          role: bap
+          subscriberId: ev-charging.sandbox1.com
+          httpClientConfig:
+            maxIdleConns: 1000
+            maxIdleConnsPerHost: 200
+            idleConnTimeout: 300s
+            responseHeaderTimeout: 5s
+          plugins:
+            registry:
+              id: registry
+              config:
+                url: http://mock-registry:3030
+                retry_max: 3
+                retry_wait_min: 100ms
+                retry_wait_max: 500ms
+            keyManager:
+              id: simplekeymanager
+              config:
+                networkParticipant: ev-charging.sandbox1.com
+                keyId: bap-key-1
+                signingPrivateKey: kaOxmZvVK0IdfMa+OtKZShKo9KVk4QLgCMn+Ch4QpU4=
+                signingPublicKey: ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4=
+                encrPrivateKey: kaOxmZvVK0IdfMa+OtKZShKo9KVk4QLgCMn+Ch4QpU4=
+                encrPublicKey: ehNGIiQxbhAJGS9U7YZN5nsUNiLDlaSUQWlWbWc4SO4=
+            cache:
+              id: cache
+              config:
+                addr: REDIS_HOST_PLACEHOLDER
+            schemaValidator:
+              id: schemav2validator
+              config:
+                type: url
+                location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
+                cacheTTL: "3600"
+            consumer:
+              id: consumer
+              config:
+                subscriberId: ev-charging.sandbox1.com
+                role: bap
+                consumerType: kafka
+                consumerThreads: "2"
+                consumer.id: kafkaconsumer
+                consumer.brokers: KAFKA_BROKER_PLACEHOLDER
+                consumer.topics: "bap.discover,bap.select,bap.init,bap.confirm,bap.status,bap.track,bap.cancel,bap.update,bap.rating,bap.support"
+                consumer.groupId: bap_caller_group
+                consumer.autoCommit: "false"
+                consumer.commitInterval: "10s"
+                consumer.sessionTimeout: "30s"
+                consumer.heartbeatInterval: "3s"
+                consumer.maxPollInterval: "5m"
+                consumer.rebalanceTimeout: "30s"
+                consumer.fetchMinBytes: "1024"
+                consumer.fetchMaxWaitTime: "500ms"
+                consumer.maxPartitionFetchBytes: "131072"
+                consumer.maxRetry: "3"
+                consumer.useTLS: "false"
+                consumer.tlsInsecureSkipVerify: "false"
+                consumer.tlsCAFile: ""
+                consumer.tlsCertFile: ""
+                consumer.tlsKeyFile: ""
+                consumer.dialTimeout: "10s"
+                consumer.admin.enabled: "on"
+                consumer.admin.topicSpecs: '[{"topic":"bap.discover","numPartitions":1,"replicationFactor":1},{"topic":"bap.select","numPartitions":1,"replicationFactor":1},{"topic":"bap.init","numPartitions":1,"replicationFactor":1},{"topic":"bap.confirm","numPartitions":1,"replicationFactor":1},{"topic":"bap.status","numPartitions":1,"replicationFactor":1},{"topic":"bap.track","numPartitions":1,"replicationFactor":1},{"topic":"bap.cancel","numPartitions":1,"replicationFactor":1},{"topic":"bap.update","numPartitions":1,"replicationFactor":1},{"topic":"bap.rating","numPartitions":1,"replicationFactor":1},{"topic":"bap.support","numPartitions":1,"replicationFactor":1}]'
+                steps: '["addRoute", "validateSchema", "sign"]'
+            router:
+              id: router
+              config:
+                routingConfig: /app/config/bapTxnCaller-routing.yaml
+            signer:
+              id: signer
+            middleware:
+              - id: reqpreprocessor
+                config:
+                  uuidKeys: transaction_id,message_id
+                  role: bap
+          steps:
+            - validateSchema
+            - addRoute
+            - sign
+
+  routing:
+    caller: |
+      # ONIX BAP Caller Routing Configuration (Kafka)
+      
+      routingRules:
+        # Phase 1: Discover to CDS
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: url
+          target:
+            url: http://mock-cds:8082/csd
+            excludeAction: false
+          endpoints:
+            - discover
+      
+        # Phase 2+: Other actions to BPP (via context_endpoint)
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: bpp
+          target: {}
+          endpoints:
+            - select
+            - init
+            - confirm
+            - status
+            - track
+            - cancel
+            - update
+            - rating
+            - support
+    
+    receiver: |
+      # ONIX BAP Receiver Routing Configuration (Kafka)
+      
+      routingRules:
+        # Phase 1: on_discover callback to BAP app via Kafka
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_discover
+          endpoints:
+            - on_discover
+      
+        # Phase 2+: Other callbacks to BAP app via Kafka
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_select
+          endpoints:
+            - on_select
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_init
+          endpoints:
+            - on_init
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_confirm
+          endpoints:
+            - on_confirm
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_status
+          endpoints:
+            - on_status
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_track
+          endpoints:
+            - on_track
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_cancel
+          endpoints:
+            - on_cancel
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_update
+          endpoints:
+            - on_update
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_rating
+          endpoints:
+            - on_rating
+      
+        - domain: beckn.one:deg:ev-charging
+          version: "2.0.0"
+          targetType: publisher
+          target:
+            publisherId: bap.on_support
+          endpoints:
+            - on_support
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Pod annotations
+podAnnotations: {}
+
+# Service annotations
+serviceAnnotations: {}

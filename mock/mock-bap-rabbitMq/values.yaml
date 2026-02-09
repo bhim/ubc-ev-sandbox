@@ -1,0 +1,63 @@
+# Default values for mock-bap-rabbitmq
+fullnameOverride: mock-bap-rabbit-mq
+
+image:
+  repository: manendrapalsingh/mock-bap-rabbit-mq
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 9003
+  targetPort: 9003
+
+config:
+  rabbitmq:
+    url: "amqp://admin:admin@onix-rabbitmq:5672/"
+    exchange: "beckn_exchange"
+    username: "admin"
+    password: "admin"
+  
+  server:
+    port: ":9003"
+  
+  defaults:
+    version: "2.0.0"
+    country_code: "IND"
+    city_code: "std:080"
+    subscriber_id: "ev-charging.sandbox1.com"
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "200m"
+
+# Health probe configuration
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

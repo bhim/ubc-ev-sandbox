@@ -18,7 +18,7 @@ services:
 
   onix-bap-plugin:
     # Use pre-built image from Docker Hub
-    image: manendrapalsingh/onix-adapter:v0.9.2
+    image: manendrapalsingh/onix-adapter:v0.9.3
     container_name: onix-bap-plugin
     ports:
       - "8001:8001"

@@ -7,6 +7,99 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.9.3] - 2026-01-27
+
+### Added
+
+#### Kafka Integration
+
+- **Kafka Support**: Added complete Kafka integration for asynchronous message-based communication
+  - **`helm-kafka/`**: Helm chart for deploying ONIX adapters with Kafka (KRaft mode, no Zookeeper)
+  - **`onix-adaptor-kafka/`**: Standalone Docker Compose setup for Kafka-based ONIX adapters
+  - **`sandbox-kafka/`**: Complete Docker Compose sandbox with Kafka message broker
+  - **`helm-sandbox-kafka/`**: Complete Helm-based sandbox deployment with Kafka on Kubernetes
+  - Kafka runs in KRaft mode (no Zookeeper required)
+  - Automatic topic creation with admin client support
+  - Kafka UI for topic management and monitoring
+  - Message examples and test scripts for publishing to Kafka topics
+
+#### RabbitMQ Integration
+
+- **RabbitMQ Support**: Added complete RabbitMQ integration for queue-based asynchronous communication
+  - **`helm-rabbitmq/`**: Helm chart for deploying ONIX adapters with RabbitMQ
+  - **`onix-adaptor-rabbitMQ/`**: Standalone Docker Compose setup for RabbitMQ-based ONIX adapters
+  - **`sandbox-rabbitMQ/`**: Complete Docker Compose sandbox with RabbitMQ message broker
+  - Queue-based message consumption with manual ACK/NACK support
+  - RabbitMQ Management UI for queue monitoring
+  - Configurable queue arguments (TTL, max length, dead letter exchange, etc.)
+
+#### Helm Charts
+
+- **`helm/`**: Helm chart for REST API-based deployment on Kubernetes
+  - Monolithic architecture with HTTP/REST communication
+  - Separate values files for BAP and BPP (`values-bap.yaml`, `values-bpp.yaml`)
+  - Kubernetes Secrets support for production deployments
+  - OpenTelemetry metrics support
+  - Schema validation v2 with URL-based validation
+
+- **`helm-sendbox/`**: Alternative Helm-based sandbox deployment
+  - Complete sandbox environment on Kubernetes
+  - Message examples and test scripts
+
+#### Mock Services
+
+- **`mock/`**: Comprehensive mock service configurations and Helm charts
+  - **`mock-bap/`**: Mock BAP service with Helm chart
+  - **`mock-bpp/`**: Mock BPP service with Helm chart
+  - **`mock-cds/`**: Mock CDS service with Helm chart
+  - **`mock-registry/`**: Mock Registry service with Helm chart
+  - **`mock-bap-kafka/`**: Mock BAP service with Kafka integration
+  - **`mock-bpp-kafka/`**: Mock BPP service with Kafka integration
+  - **`mock-bap-rabbitMq/`**: Mock BAP service with RabbitMQ integration
+  - **`mock-bpp-rabbitMq/`**: Mock BPP service with RabbitMQ integration
+
+#### Message Examples and Test Scripts
+
+- **Kafka Message Examples**: Added comprehensive message examples for Kafka topics
+  - BAP message examples: `sandbox-kafka/message/bap/example/` (16 JSON files)
+  - BPP message examples: `sandbox-kafka/message/bpp/example/` (12 JSON files)
+  - Test scripts for publishing messages: `sandbox-kafka/message/bap/test/` and `sandbox-kafka/message/bpp/test/`
+  - Support for all EV charging actions (discover variants, select, init, confirm, track, cancel, update, rating, support)
+
+- **RabbitMQ Message Examples**: Added message examples for RabbitMQ
+  - BAP and BPP message examples in `sandbox-rabbitMQ/message/`
+  - Test scripts for publishing messages via RabbitMQ
+
+### Changed
+
+#### Documentation
+
+- **`README.md`**: Completely restructured to be brief and reference-only
+  - Removed detailed examples and code snippets
+  - Added comprehensive repository structure section
+  - Organized documentation references by deployment type (Docker Compose vs Helm)
+  - Added communication pattern overview (REST API, Kafka, RabbitMQ)
+  - Streamlined Quick Start section with references to detailed guides
+
+#### ONIX Adapter Configurations
+
+- **`onix-adaptor/config/onix-bap/adapter.yaml`**: Updated for v0.9.3 compatibility
+- **`onix-adaptor/config/onix-bpp/adapter.yaml`**: Updated for v0.9.3 compatibility
+
+#### Docker Compose Files
+
+- **`onix-adaptor/docker-compose-onix-bap-plugin.yml`**: Updated to use `manendrapalsingh/onix-adapter:v0.9.3`
+- **`onix-adaptor/docker-compose-onix-bpp-plugin.yml`**: Updated to use `manendrapalsingh/onix-adapter:v0.9.3`
+
+### Features
+
+- **Multiple Communication Patterns**: Support for REST API, Kafka, and RabbitMQ
+- **Kubernetes Deployment**: Complete Helm chart support for all communication patterns
+- **Production Ready**: Secret management, health checks, OpenTelemetry metrics, structured logging
+- **Schema Validation v2**: URL-based schema validation from Beckn protocol specifications
+- **KRaft Mode**: Kafka runs without Zookeeper for simplified deployment
+- **Queue Management**: Advanced RabbitMQ queue configuration with TTL, dead letter queues, and priority support
+
 ## [v0.9.2] - 2026-01-13
 
 ### Changed

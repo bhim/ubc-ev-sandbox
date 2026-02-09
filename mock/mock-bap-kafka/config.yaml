@@ -1,0 +1,21 @@
+kafka:
+  # Kafka broker addresses
+  brokers:
+    - "kafka:9092"
+  # Consumer group ID
+  group_id: "mock-bap-kafka-group"
+
+server:
+  # Port for internal health check endpoint only (not exposed externally)
+  # Used by Docker healthcheck - service runs in queue-only mode
+  port: ":9003"
+
+defaults:
+  # Beckn protocol version
+  version: "1.0.0"
+  # Country code (ISO 3166-1 alpha-3)
+  country_code: "IND"
+  # City code (Beckn city code format)
+  city_code: "std:080"
+
+

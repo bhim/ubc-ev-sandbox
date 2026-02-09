@@ -1,0 +1,29 @@
+# BPP-specific values for onix-rabbitmq
+component: bpp
+
+# Replica count - ensure only 1 pod
+replicaCount: 1
+
+# Image: inherits manendrapalsingh/onix-adapter:v0.9.3 from values.yaml
+
+service:
+  port: 8002
+  targetPort: 8002
+
+# Disable RabbitMQ for BPP - use the shared RabbitMQ instance from BAP
+rabbitmq:
+  enabled: false
+  # BPP will connect to BAP's RabbitMQ service
+  broker: ev-charging-rabbitmq-bap-onix-rabbitmq-rabbitmq:5672
+
+redis:
+  enabled: true
+  service:
+    port: 6379
+
+env:
+  - name: RABBITMQ_USERNAME
+    value: admin
+  - name: RABBITMQ_PASSWORD
+    value: admin
+

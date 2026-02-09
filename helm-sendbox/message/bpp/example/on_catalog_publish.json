@@ -1,0 +1,39 @@
+{
+  "context": {
+    "version": "2.0.0",
+    "action": "on_catalog_publish",
+    "domain": "beckn.one:deg:ev-charging",
+    "timestamp": "2025-01-27T10:00:00Z",
+    "message_id": "a1eabf26-29f5-4a01-9d4e-4c5c9d1a3d02",
+    "transaction_id": "550e8400-e29b-41d4-a716-446655440000",
+    "bpp_id": "discovery-indexer.example.com",
+    "bpp_uri": "https://discovery-indexer.example.com",
+    "bap_id": "ev-charging.sandbox1.com",
+    "bap_uri": "http://onix-bap-service:8001/bap/receiver",
+    "ttl": "PT30S"
+  },
+  "message": {
+    "results": [
+      {
+        "catalog_id": "catalog-ev-charging-001",
+        "status": "ACCEPTED",
+        "item_count": 42,
+        "warnings": [
+          {
+            "code": "NON_NORMALIZED_BRAND",
+            "message": "Some brand values were normalized"
+          }
+        ]
+      },
+      {
+        "catalog_id": "catalog-ev-charging-002",
+        "status": "REJECTED",
+        "error": {
+          "code": "INVALID_ITEM",
+          "message": "Invalid item payload at index 3",
+          "paths": "catalogs[1].items[3]"
+        }
+      }
+    ]
+  }
+}

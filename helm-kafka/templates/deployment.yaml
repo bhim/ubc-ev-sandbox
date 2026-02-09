@@ -1,0 +1,233 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "onix-kafka.fullname" . }}-{{ .Values.component }}
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: {{ .Values.component }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "onix-kafka.selectorLabels" . | nindent 6 }}
+      component: {{ .Values.component }}
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "onix-kafka.selectorLabels" . | nindent 8 }}
+        component: {{ .Values.component }}
+    spec:
+      initContainers:
+      {{- /* Determine Kafka and Redis service addresses */}}
+      {{- $fullname := include "onix-kafka.fullname" . }}
+      {{- $kafkaBroker := .Values.kafka.broker }}
+      {{- if not $kafkaBroker }}
+        {{- if .Values.kafka.enabled }}
+          {{- $kafkaPort := int .Values.kafka.service.port }}
+          {{- $kafkaBroker = printf "%s-kafka:%d" $fullname $kafkaPort }}
+        {{- else }}
+          {{- $kafkaBroker = "onix-bap-kafka:9092" }}
+        {{- end }}
+      {{- end }}
+      {{- $redisHost := printf "%s-redis-%s" $fullname .Values.component }}
+      {{- $redisPort := int .Values.redis.service.port }}
+      {{- /* Wait for Kafka to be ready - only if Kafka is enabled or broker is set */}}
+      {{- if or .Values.kafka.enabled .Values.kafka.broker }}
+      - name: wait-for-kafka
+        image: confluentinc/cp-kafka:{{ .Values.kafka.image.tag | default "7.5.0" }}
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for Kafka at {{ $kafkaBroker }} to be ready..."
+          until kafka-broker-api-versions --bootstrap-server {{ $kafkaBroker }} >/dev/null 2>&1; do
+            echo "Waiting for Kafka..."
+            sleep 5
+          done
+          echo "Kafka is ready!"
+      {{- end }}
+      {{- /* Wait for Redis to be ready - only if Redis is enabled or host is set */}}
+      {{- if or .Values.redis.enabled .Values.redis.host }}
+      - name: wait-for-redis
+        image: redis:{{ .Values.redis.image.tag | default "alpine" }}
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for Redis at {{ $redisHost }}:{{ $redisPort }} to be ready..."
+          until redis-cli -h {{ $redisHost }} -p {{ $redisPort }}{{- if .Values.redis.password }} -a {{ .Values.redis.password | quote }}{{- end }} ping >/dev/null 2>&1; do
+            echo "Waiting for Redis..."
+            sleep 5
+          done
+          echo "Redis is ready!"
+      {{- end }}
+      containers:
+      - name: {{ .Values.component }}-plugin-kafka
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.service.targetPort }}
+          protocol: TCP
+        env:
+        {{- range .Values.env }}
+        - name: {{ .name }}
+          {{- if .value }}
+          value: {{ .value | quote }}
+          {{- else if .valueFrom }}
+          valueFrom:
+            {{- toYaml .valueFrom | nindent 12 }}
+          {{- end }}
+        {{- end }}
+        {{- if and .Values.secrets.enabled .Values.secrets.secretName }}
+        # Secret environment variables - these override adapter.yaml values at runtime
+        - name: SIGNING_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.secretName }}
+              key: signingPrivateKey
+              optional: true
+        - name: SIGNING_PUBLIC_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.secretName }}
+              key: signingPublicKey
+              optional: true
+        - name: ENCR_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.secretName }}
+              key: encrPrivateKey
+              optional: true
+        - name: ENCR_PUBLIC_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.secretName }}
+              key: encrPublicKey
+              optional: true
+        - name: SUBSCRIBER_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.secretName }}
+              key: subscriberId
+              optional: true
+        - name: NETWORK_PARTICIPANT
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.secretName }}
+              key: networkParticipant
+              optional: true
+        - name: KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.secretName }}
+              key: keyId
+              optional: true
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.secretName }}
+              key: redisPassword
+              optional: true
+        {{- else }}
+        # Fallback to hardcoded values from config.keys when secrets are disabled
+        {{- if .Values.config.keys.signingPrivateKey }}
+        - name: SIGNING_PRIVATE_KEY
+          value: {{ .Values.config.keys.signingPrivateKey | quote }}
+        {{- end }}
+        {{- if .Values.config.keys.signingPublicKey }}
+        - name: SIGNING_PUBLIC_KEY
+          value: {{ .Values.config.keys.signingPublicKey | quote }}
+        {{- end }}
+        {{- if .Values.config.keys.encrPrivateKey }}
+        - name: ENCR_PRIVATE_KEY
+          value: {{ .Values.config.keys.encrPrivateKey | quote }}
+        {{- end }}
+        {{- if .Values.config.keys.encrPublicKey }}
+        - name: ENCR_PUBLIC_KEY
+          value: {{ .Values.config.keys.encrPublicKey | quote }}
+        {{- end }}
+        {{- if .Values.config.keys.subscriberId }}
+        - name: SUBSCRIBER_ID
+          value: {{ .Values.config.keys.subscriberId | quote }}
+        {{- end }}
+        {{- if .Values.config.keys.networkParticipant }}
+        - name: NETWORK_PARTICIPANT
+          value: {{ .Values.config.keys.networkParticipant | quote }}
+        {{- end }}
+        {{- if .Values.config.keys.keyId }}
+        - name: KEY_ID
+          value: {{ .Values.config.keys.keyId | quote }}
+        {{- end }}
+        {{- if .Values.config.keys.redisPassword }}
+        - name: REDIS_PASSWORD
+          value: {{ .Values.config.keys.redisPassword | quote }}
+        {{- end }}
+        {{- end }}
+        - name: CONFIG_FILE
+          value: /app/config/adapter.yaml
+        volumeMounts:
+        - name: config
+          mountPath: /app/config/onix-{{ .Values.component }}
+        - name: adapter-config
+          mountPath: /app/config/adapter.yaml
+          subPath: adapter.yaml
+        {{- if eq .Values.component "bap" }}
+        - name: config
+          mountPath: /app/config/bapTxnCaller-routing.yaml
+          subPath: bapTxnCaller-routing.yaml
+        - name: config
+          mountPath: /app/config/bapTxnReciever-routing.yaml
+          subPath: bapTxnReciever-routing.yaml
+        {{- else }}
+        - name: config
+          mountPath: /app/config/bppTxnCaller-routing.yaml
+          subPath: bppTxnCaller-routing.yaml
+        - name: config
+          mountPath: /app/config/bppTxnReciever-routing.yaml
+          subPath: bppTxnReciever-routing.yaml
+        {{- end }}
+        {{- if .Values.resources }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "onix-kafka.fullname" . }}-{{ .Values.component }}-config
+      - name: adapter-config
+        configMap:
+          name: {{ include "onix-kafka.fullname" . }}-{{ .Values.component }}-adapter
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+

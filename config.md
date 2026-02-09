@@ -178,3 +178,195 @@ Key-value pairs for BAP and BPP ONIX adapters.
 | `routingRules[].endpoints` | `on_discover` | Phase 1 callback via CDS |
 | `routingRules[].targetType` | `bap` | Route using `bap_uri` from context |
 | `routingRules[].endpoints` | `on_select, on_init, on_confirm, on_status, on_track, on_cancel, on_update, on_rating, on_support` | Phase 2+ callbacks direct to BAP |
+
+---
+
+## Kubernetes Service Names
+
+### Helm Deployments (with `fullnameOverride=onix`)
+
+| Service Type | Service Name | Port | Description |
+|--------------|--------------|------|-------------|
+| **ONIX BAP Adapter** | `onix-bap-service` | 8001 | BAP adapter HTTP service |
+| **ONIX BPP Adapter** | `onix-bpp-service` | 8002 | BPP adapter HTTP service |
+| **Kafka Broker** | `onix-kafka` | 9092 | Kafka broker (shared by BAP and BPP) |
+| **Kafka UI** | `onix-kafka-ui` | 8080 | Kafka Management UI (shared by BAP and BPP) |
+| **RabbitMQ** | `onix-rabbitmq` | 5672, 15672 | RabbitMQ broker and Management UI |
+| **Redis BAP** | `onix-bap-redis-bap` | 6379 | Redis cache for BAP adapter |
+| **Redis BPP** | `onix-bpp-redis-bpp` | 6379 | Redis cache for BPP adapter |
+| **Mock Registry** | `mock-registry` | 3030 | Registry service |
+| **Mock CDS** | `mock-cds` | 8082 | Catalog Discovery Service |
+| **Mock BAP** | `mock-bap` | 9001 | Mock BAP backend (REST) |
+| **Mock BPP** | `mock-bpp` | 9002 | Mock BPP backend (REST) |
+
+### Service Access Patterns
+
+**Internal (ClusterIP):**
+- BAP: `http://onix-bap-service:8001`
+- BPP: `http://onix-bpp-service:8002`
+- Kafka: `onix-kafka:9092`
+- RabbitMQ: `onix-rabbitmq:5672` (AMQP), `onix-rabbitmq:15672` (Management API)
+
+**External (Port Forward):**
+```bash
+# BAP and BPP services
+kubectl port-forward svc/onix-bap-service 8001:8001 -n ev-charging-sandbox
+kubectl port-forward svc/onix-bpp-service 8002:8002 -n ev-charging-sandbox
+
+# Kafka UI
+kubectl port-forward svc/onix-kafka-ui 8080:8080 -n ev-charging-sandbox
+
+# RabbitMQ Management UI
+kubectl port-forward svc/onix-rabbitmq 15672:15672 -n ev-charging-sandbox
+```
+
+---
+
+## Directory Structure and Path References
+
+### Correct Directory Paths
+
+| Purpose | Correct Path | Incorrect Path (Fixed) |
+|---------|--------------|----------------------|
+| **Helm Kafka Sandbox Messages** | `helm-sandbox-kafka/message/` | ~~`sandbox/helm/kafka/message/`~~ |
+| **Docker Kafka Sandbox Messages** | `sandbox-kafka/message/` | ~~`sandbox/docker/kafka/message/`~~ |
+| **Helm RabbitMQ Sandbox Messages** | `helm-sandbox-rabbitMq/message/` | N/A (was incorrectly using Kafka terminology) |
+| **Docker RabbitMQ Sandbox Messages** | `sandbox-rabbitMQ/message/` | ~~`sandbox/docker/monolithic/rabbitmq/message/`~~ |
+| **Helm REST API Sandbox Messages** | `helm-sendbox/message/` | N/A |
+| **Docker REST API Sandbox** | `sandbox/` | N/A |
+
+### Message Testing Script Paths
+
+**Kafka (Helm):**
+```bash
+cd helm-sandbox-kafka/message/bap/test && ./publish-all.sh
+cd helm-sandbox-kafka/message/bpp/test && ./publish-all.sh
+```
+
+**Kafka (Docker):**
+```bash
+cd sandbox-kafka/message/bap/test && ./publish-all.sh
+cd sandbox-kafka/message/bpp/test && ./publish-all.sh
+```
+
+**RabbitMQ (Helm):**
+```bash
+cd helm-sandbox-rabbitMq/message/bap/test && ./publish-all.sh
+cd helm-sandbox-rabbitMq/message/bpp/test && ./publish-all.sh
+```
+
+**RabbitMQ (Docker):**
+```bash
+cd sandbox-rabbitMQ/message/bap/test && ./publish-all.sh
+cd sandbox-rabbitMQ/message/bpp/test && ./publish-all.sh
+```
+
+**REST API (Helm):**
+```bash
+cd helm-sendbox/message/bap/test && ./test-all.sh
+cd helm-sendbox/message/bpp/test && ./test-all.sh
+```
+
+---
+
+## Technology-Specific Configurations
+
+### Kafka Configuration
+
+**Message Transport:**
+- Uses Kafka topics for asynchronous messaging
+- Topics follow pattern: `{component}.{action}` (e.g., `bap.discover`, `bpp.on_select`)
+- Consumer groups managed by ONIX plugins
+
+**Environment Variables:**
+```bash
+export KAFKA_HOST=localhost             # For local Kafka CLI tools
+export KAFKA_PORT=9092                  # Kafka broker port
+export KAFKA_BOOTSTRAP=localhost:9092   # Bootstrap server
+export KAFKA_NAMESPACE=ev-charging-sandbox  # Kubernetes namespace
+```
+
+**Service Configuration:**
+- Kafka broker: `onix-kafka:9092` (when `fullnameOverride=onix`)
+- Kafka UI: `onix-kafka-ui:8080` (when `fullnameOverride=onix`)
+- Topics are auto-created on first message publish
+
+### RabbitMQ Configuration
+
+**Message Transport:**
+- Uses RabbitMQ queues with routing keys for asynchronous messaging
+- Exchange: `beckn_exchange` (topic exchange)
+- Queues: `bap_caller_queue`, `bpp_caller_queue`
+- Routing keys follow pattern: `{component}.{action}` (e.g., `bap.discover`, `bpp.on_select`)
+
+**Environment Variables:**
+```bash
+export RABBITMQ_HOST=localhost          # RabbitMQ host
+export RABBITMQ_PORT=15672             # Management API port
+export RABBITMQ_USER=guest             # Management API username
+export RABBITMQ_PASS=guest             # Management API password
+export EXCHANGE=beckn_exchange         # Exchange name
+export RABBITMQ_NAMESPACE=ev-charging-sandbox  # Kubernetes namespace
+```
+
+**Service Configuration:**
+- RabbitMQ broker: `onix-rabbitmq:5672` (AMQP port)
+- RabbitMQ Management: `onix-rabbitmq:15672` (Management API port)
+- Exchange and queues must be pre-configured or created via setup scripts
+
+**Queue Bindings:**
+- `bap_caller_queue` bound to `beckn_exchange` with routing keys `bap.*`
+- `bpp_caller_queue` bound to `beckn_exchange` with routing keys `bpp.on_*` and `bpp.catalog_publish`
+
+### REST API Configuration
+
+**Message Transport:**
+- Uses synchronous HTTP/REST endpoints
+- Direct HTTP calls between services
+- No message broker required
+
+**Service Endpoints:**
+- BAP Caller: `http://onix-bap-service:8001/bap/caller/{action}`
+- BAP Receiver: `http://onix-bap-service:8001/bap/receiver/{action}`
+- BPP Caller: `http://onix-bpp-service:8002/bpp/caller/{action}`
+- BPP Receiver: `http://onix-bpp-service:8002/bpp/receiver/{action}`
+
+---
+
+## Configuration File Locations
+
+### ONIX Adapter Configurations
+
+| Component | Configuration Path | Description |
+|-----------|-------------------|-------------|
+| **BAP (REST)** | `onix-adaptor/config/onix-bap/` | REST API adapter configuration |
+| **BPP (REST)** | `onix-adaptor/config/onix-bpp/` | REST API adapter configuration |
+| **BAP (Kafka)** | `onix-adaptor-kafka/config/onix-bap/` | Kafka adapter configuration |
+| **BPP (Kafka)** | `onix-adaptor-kafka/config/onix-bpp/` | Kafka adapter configuration |
+| **BAP (RabbitMQ)** | `onix-adaptor-rabbitMQ/config/onix-bap/` | RabbitMQ adapter configuration |
+| **BPP (RabbitMQ)** | `onix-adaptor-rabbitMQ/config/onix-bpp/` | RabbitMQ adapter configuration |
+
+### Helm Chart Configurations
+
+| Chart | Values File | Description |
+|-------|-------------|-------------|
+| **REST API** | `helm/values.yaml`, `helm/values-bap.yaml`, `helm/values-bpp.yaml` | REST API Helm chart values |
+| **Kafka** | `helm-kafka/values.yaml`, `helm-kafka/values-bap.yaml`, `helm-kafka/values-bpp.yaml` | Kafka Helm chart values |
+| **RabbitMQ** | `helm-rabbitmq/values.yaml`, `helm-rabbitmq/values-bap.yaml`, `helm-rabbitmq/values-bpp.yaml` | RabbitMQ Helm chart values |
+| **Sandbox (REST)** | `helm-sendbox/values-sandbox.yaml` | Complete sandbox with REST API |
+| **Sandbox (Kafka)** | `helm-sandbox-kafka/values-sandbox.yaml` | Complete sandbox with Kafka |
+| **Sandbox (RabbitMQ)** | `helm-sandbox-rabbitMq/values-sandbox.yaml` | Complete sandbox with RabbitMQ |
+
+---
+
+## Important Notes
+
+1. **Service Naming**: When using `fullnameOverride=onix` in Helm deployments, Kafka services are named `onix-kafka` and `onix-kafka-ui` (not `onix-bap-kafka` or `onix-bpp-kafka`), as they are shared resources.
+
+2. **Path Consistency**: All message testing paths have been standardized. Use the correct paths as documented above.
+
+3. **Technology Terminology**: 
+   - **Kafka**: Uses "topics" and "Kafka CLI" commands
+   - **RabbitMQ**: Uses "queues", "routing keys", "exchanges", and "RabbitMQ Management API"
+
+4. **Cross-References**: All README cross-references have been updated to use correct relative paths (e.g., `../helm-kafka/README.md` instead of `./../../kafka/README.md`).

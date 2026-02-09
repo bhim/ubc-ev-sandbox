@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "onix-rabbitmq.fullname" . }}-{{ .Values.component }}-config
+  labels:
+    {{- include "onix-rabbitmq.labels" . | nindent 4 }}
+    component: {{ .Values.component }}
+data:
+  adapter.yaml: |
+{{- $fullname := include "onix-rabbitmq.fullname" . }}
+{{- $redisHost := printf "%s-redis-%s" $fullname .Values.component }}
+{{- $redisPort := int (.Values.redis.service.port | default 6379) }}
+{{- $redisAddr := printf "%s:%d" $redisHost $redisPort }}
+{{- $rabbitmqBroker := .Values.rabbitmq.broker }}
+{{- if not $rabbitmqBroker }}
+{{- if .Values.rabbitmq.enabled }}
+{{- $rabbitmqPort := int (.Values.rabbitmq.service.amqpPort | default 5672) }}
+{{- $rabbitmqBroker = printf "%s-rabbitmq:%d" $fullname $rabbitmqPort }}
+{{- else }}
+{{- $rabbitmqBroker = "ev-charging-rabbitmq-bap-onix-rabbitmq-rabbitmq:5672" }}
+{{- end }}
+{{- end }}
+{{- $registryUrl := .Values.config.registryUrl | default "http://mock-registry:3030" }}
+{{- $adapterConfig := .Values.config.adapter }}
+{{- $adapterConfig = $adapterConfig | replace "redis-bpp:6379" $redisAddr }}
+{{- $adapterConfig = $adapterConfig | replace "redis-bap:6379" $redisAddr }}
+{{- $adapterConfig = $adapterConfig | replace "rabbitmq:5672" $rabbitmqBroker }}
+{{- $adapterConfig = $adapterConfig | replace "username: guest" "username: admin" }}
+{{- $adapterConfig = $adapterConfig | replace "password: guest" "password: admin" }}
+{{- $adapterConfig = $adapterConfig | replace "http://mock-registry:3030" $registryUrl }}
+{{- $retryMax := int (.Values.retry.registry.maxRetries | default 3) }}
+{{- $retryWaitMin := .Values.retry.registry.waitMin | default "100ms" }}
+{{- $retryWaitMax := .Values.retry.registry.waitMax | default "500ms" }}
+{{- $adapterConfig = $adapterConfig | replace "retry_max: 3" (printf "retry_max: %d" $retryMax) }}
+{{- $adapterConfig = $adapterConfig | replace "retry_wait_min: 100ms" (printf "retry_wait_min: %s" $retryWaitMin) }}
+{{- $adapterConfig = $adapterConfig | replace "retry_wait_max: 500ms" (printf "retry_wait_max: %s" $retryWaitMax) }}
+{{- if eq .Values.component "bpp" }}
+{{- $adapterConfig = $adapterConfig | replace "bapTxnReceiver" "bppTxnReceiver" }}
+{{- $adapterConfig = $adapterConfig | replace "bapTxnCaller" "bppTxnCaller" }}
+{{- $adapterConfig = $adapterConfig | replace "role: bap" "role: bpp" }}
+{{- $adapterConfig = $adapterConfig | replace "subscriberId: ev-charging.sandbox1.com" "subscriberId: ev-charging.sandbox2.com" }}
+{{- $adapterConfig = $adapterConfig | replace "networkParticipant: ev-charging.sandbox1.com" "networkParticipant: ev-charging.sandbox2.com" }}
+{{- $adapterConfig = $adapterConfig | replace "port: 8001" "port: 8002" }}
+{{- $adapterConfig = $adapterConfig | replace "consumer.queueName: \"bap_caller_queue\"" "consumer.queueName: \"bpp_caller_queue\"" }}
+{{- $adapterConfig = $adapterConfig | replace "consumer.routingKeys: \"bap.discover,bap.select,bap.init,bap.confirm,bap.status,bap.track,bap.cancel,bap.update,bap.rating,bap.support\"" "consumer.routingKeys: \"bpp.on_discover,bpp.on_select,bpp.on_init,bpp.on_confirm,bpp.on_status,bpp.on_track,bpp.on_cancel,bpp.on_update,bpp.on_rating,bpp.on_support,bpp.catalog_publish,bpp.on_catalog_publish\"" }}
+{{- $adapterConfig = $adapterConfig | replace "routingConfig: /app/config/bapTxnReciever-routing.yaml" "routingConfig: /app/config/bppTxnReciever-routing.yaml" }}
+{{- $adapterConfig = $adapterConfig | replace "routingConfig: /app/config/bapTxnCaller-routing.yaml" "routingConfig: /app/config/bppTxnCaller-routing.yaml" }}
+{{- $adapterConfig = $adapterConfig | replace "path: /bap/receiver/" "path: /bpp/receiver/" }}
+{{- $adapterConfig = $adapterConfig | replace "appName: \"onix-ev-charging\"" "appName: \"bpp-ev-charging\"" }}
+{{- $adapterConfig = $adapterConfig | replace "metricsPort: \"9003\"" "metricsPort: \"9004\"" }}
+{{- $adapterConfig = $adapterConfig | replace "keyId: bap-key-1" "keyId: bpp-key-1" }}
+{{- $adapterConfig = $adapterConfig | replace "xnKF3BIg3Ei+ZEvxBtK0Mm4GRG1Mr0+K9IrxT6CnHEE=" "HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=" }}
+{{- $adapterConfig = $adapterConfig | replace "MKA6fln8vmU2Qn80Y7dLzagpaPNqQWOlvGglMo5s0IU=" "2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=" }}
+{{- end }}
+{{ $adapterConfig | indent 4 }}
+  {{- if eq .Values.component "bap" }}
+  bapTxnCaller-routing.yaml: |
+{{- $cdsUrl := .Values.config.cdsUrl | default "http://mock-cds:8082" }}
+{{ .Values.config.routing.caller | replace "http://mock-cds:8082" $cdsUrl | indent 4 }}
+  bapTxnReciever-routing.yaml: |
+{{ .Values.config.routing.receiver | indent 4 }}
+  {{- else }}
+  bppTxnCaller-routing.yaml: |
+{{- $cdsUrl := .Values.config.cdsUrl | default "http://mock-cds:8082" }}
+{{ .Values.config.routing.callerBpp | replace "http://mock-cds:8082" $cdsUrl | indent 4 }}
+  bppTxnReciever-routing.yaml: |
+{{ .Values.config.routing.receiverBpp | indent 4 }}
+  {{- end }}
+  plugin.yaml: |
+{{ .Values.config.plugin | indent 4 }}
