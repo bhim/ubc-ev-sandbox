@@ -1,0 +1,75 @@
+piiPatterns:
+  - name: email
+    regex: "^[\\w.+-]+@[\\w.-]+\\.[a-zA-Z]{2,}$"
+    maskType: replace
+    mask: "***@***.***"
+  - name: phone
+    regex: "^\\+?[0-9][0-9\\-\\s]{7,15}$"
+    maskType: last4
+  - name: tax_id
+    regex: "^[A-Z0-9]{5,20}$"
+    maskType: last4
+  - name: account
+    regex: "^[0-9]{8,20}$"
+    maskType: last4
+  - name: generic
+    regex: "."
+    maskType: replace
+    mask: "[MASKED]"
+
+piiPaths:
+  # Buyer identity
+  - path: message.order.beckn:buyer.beckn:email
+    pattern: email
+  - path: message.order.beckn:buyer.beckn:telephone
+    pattern: phone
+  - path: message.order.beckn:buyer.beckn:displayName
+    pattern: generic
+  - path: message.order.beckn:buyer.beckn:taxID
+    pattern: tax_id
+
+  # Payment
+  - path: message.order.beckn:payment.beckn:paymentURL
+    pattern: generic
+  - path: message.order.beckn:payment.beckn:txnRef
+    pattern: last4
+  - path: message.order.beckn:payment.beckn:paidAt
+    pattern: generic
+
+  # Fulfillment address
+  - path: message.order.beckn:fulfillment.beckn:deliveryAttributes.address
+    pattern: generic
+  - path: message.order.beckn:fulfillment.beckn:deliveryAttributes.address.streetAddress
+    pattern: generic
+  - path: message.order.beckn:fulfillment.beckn:deliveryAttributes.address.extendedAddress
+    pattern: generic
+  - path: message.order.beckn:fulfillment.beckn:deliveryAttributes.address.addressLocality
+    pattern: generic
+  - path: message.order.beckn:fulfillment.beckn:deliveryAttributes.address.postalCode
+    pattern: generic
+
+  # SupportInfo
+  - path: message.support.name
+    pattern: generic
+  - path: message.support.phone
+    pattern: phone
+  - path: message.support.email
+    pattern: email
+
+  # Provider attributes (ChargingPointOperator)
+  - path: message.order.beckn:seller.beckn:providerAttributes.supportEmail
+    pattern: email
+  - path: message.order.beckn:seller.beckn:providerAttributes.supportPhone
+    pattern: phone
+  - path: message.order.beckn:seller.beckn:providerAttributes.gstNumber
+    pattern: tax_id
+
+  # PaymentSettlement (in payment attributes)
+  - path: message.order.beckn:payment.beckn:paymentAttributes.settlementAccounts.accountHolderName
+    pattern: generic
+  - path: message.order.beckn:payment.beckn:paymentAttributes.settlementAccounts.accountNumber
+    pattern: account
+  - path: message.order.beckn:payment.beckn:paymentAttributes.settlementAccounts.vpa
+    pattern: generic
+  - path: message.order.beckn:payment.beckn:paymentAttributes.settlementAccounts.paymentURL
+    pattern: generic

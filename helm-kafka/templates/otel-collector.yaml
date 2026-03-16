@@ -1,0 +1,117 @@
+{{- if .Values.otelCollector.enabled }}
+{{- $fullname := include "onix-kafka.fullname" . }}
+{{- if .Values.otelCollector.config }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullname }}-otel-collector-{{ .Values.component }}-config
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: otel-collector-{{ .Values.component }}
+data:
+  config.yaml: |
+{{ .Values.otelCollector.config | indent 4 }}
+{{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-otel-collector-{{ .Values.component }}
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: otel-collector-{{ .Values.component }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "onix-kafka.selectorLabels" . | nindent 6 }}
+      component: otel-collector-{{ .Values.component }}
+  template:
+    metadata:
+      labels:
+        {{- include "onix-kafka.selectorLabels" . | nindent 8 }}
+        component: otel-collector-{{ .Values.component }}
+    spec:
+      containers:
+      - name: otel-collector
+        image: "{{ .Values.otelCollector.image.repository }}:{{ .Values.otelCollector.image.tag }}"
+        imagePullPolicy: {{ .Values.otelCollector.image.pullPolicy }}
+        {{- if .Values.otelCollector.config }}
+        command: ["--config=/etc/otelcol/config.yaml"]
+        {{- end }}
+        ports:
+        - name: otlp-grpc
+          containerPort: {{ .Values.otelCollector.ports.grpc }}
+          protocol: TCP
+        - name: otlp-http
+          containerPort: {{ .Values.otelCollector.ports.http }}
+          protocol: TCP
+        - name: health-check
+          containerPort: {{ .Values.otelCollector.ports.healthCheck }}
+          protocol: TCP
+        - name: zpages
+          containerPort: {{ .Values.otelCollector.ports.zpages }}
+          protocol: TCP
+        {{- if .Values.otelCollector.config }}
+        volumeMounts:
+        - name: otel-config
+          mountPath: /etc/otelcol/config.yaml
+          subPath: config.yaml
+        {{- end }}
+        {{- if .Values.otelCollector.resources }}
+        resources:
+          {{- toYaml .Values.otelCollector.resources | nindent 10 }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: health-check
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: health-check
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      {{- if .Values.otelCollector.config }}
+      volumes:
+      - name: otel-config
+        configMap:
+          name: {{ $fullname }}-otel-collector-{{ .Values.component }}-config
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-otel-collector-{{ .Values.component }}
+  labels:
+    {{- include "onix-kafka.labels" . | nindent 4 }}
+    component: otel-collector-{{ .Values.component }}
+spec:
+  type: {{ .Values.otelCollector.service.type }}
+  ports:
+    - port: {{ .Values.otelCollector.ports.grpc }}
+      targetPort: otlp-grpc
+      protocol: TCP
+      name: otlp-grpc
+    - port: {{ .Values.otelCollector.ports.http }}
+      targetPort: otlp-http
+      protocol: TCP
+      name: otlp-http
+    - port: {{ .Values.otelCollector.ports.healthCheck }}
+      targetPort: health-check
+      protocol: TCP
+      name: health-check
+    - port: {{ .Values.otelCollector.ports.zpages }}
+      targetPort: zpages
+      protocol: TCP
+      name: zpages
+  selector:
+    {{- include "onix-kafka.selectorLabels" . | nindent 4 }}
+    component: otel-collector-{{ .Values.component }}
+{{- end }}

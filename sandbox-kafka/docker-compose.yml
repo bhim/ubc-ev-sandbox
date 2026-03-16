@@ -74,19 +74,22 @@ services:
   # Onix BAP Kafka Plugin
   onix-bap-plugin-kafka:
     # Use pre-built image from Docker Hub
-    image: manendrapalsingh/onix-adapter:v0.9.3
+    image: manendrapalsingh/onix-adapter:v0.9.5
     pull_policy: always
     container_name: onix-bap-plugin-kafka
     ports:
       - "8001:8001"  # HTTP port for bapTxnReceiver endpoint
+      - "9003:9003"
     volumes:
       # Mount config directory (writable for symlink creation, but original files won't be modified)
       - ${CONFIG_PATH:-../onix-adaptor-kafka/config}/onix-bap:/app/config
       # Mount schema directory (read-only)
-      - ../../../schemas:/app/schemas:ro
+      - ../schemas:/app/schemas:ro
     environment:
       - CONFIG_FILE=/app/config/adapter.yaml
       - REDIS_PASSWORD=your-redis-password
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector-bap:4317
     restart: unless-stopped
     depends_on:
       kafka:
@@ -95,6 +98,8 @@ services:
         condition: service_healthy
       mock-registry:
         condition: service_healthy
+      otel-collector-bap:
+        condition: service_started
     networks:
       - onix-network
     deploy:
@@ -109,19 +114,22 @@ services:
   # Onix BPP Kafka Plugin
   onix-bpp-plugin-kafka:
     # Use pre-built image from Docker Hub
-    image: manendrapalsingh/onix-adapter:v0.9.3
+    image: manendrapalsingh/onix-adapter:v0.9.5
     pull_policy: always
     container_name: onix-bpp-plugin-kafka
     ports:
       - "8002:8002"  # HTTP port for bppTxnReceiver endpoint
+      - "9004:9004"
     volumes:
       # Mount config directory (writable for symlink creation, but original files won't be modified)
       - ${CONFIG_PATH:-../onix-adaptor-kafka/config}/onix-bpp:/app/config
       # Mount schema directory (read-only)
-      - ../../../schemas:/app/schemas:ro
+      - ../schemas:/app/schemas:ro
     environment:
       - CONFIG_FILE=/app/config/adapter.yaml
       - REDIS_PASSWORD=your-redis-password
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector-bpp:4317
     restart: unless-stopped
     depends_on:
       kafka:
@@ -130,6 +138,8 @@ services:
         condition: service_healthy
       mock-registry:
         condition: service_healthy
+      otel-collector-bpp:
+        condition: service_started
     networks:
       - onix-network
     deploy:
@@ -267,6 +277,36 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+    restart: unless-stopped
+
+  # OTel Collector for BAP - receives OTLP from onix-bap-plugin-kafka
+  otel-collector-bap:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector-bap
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8889:8889"
+      - "8888:8888"
+      - "13133:13133"
+      - "55679:55679"
+    networks:
+      - onix-network
+    restart: unless-stopped
+
+  # OTel Collector for BPP - receives OTLP from onix-bpp-plugin-kafka
+  otel-collector-bpp:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector-bpp
+    ports:
+      - "4321:4317"
+      - "4322:4318"
+      - "8891:8889"
+      - "8892:8888"
+      - "13134:13133"
+      - "55680:55679"
+    networks:
+      - onix-network
     restart: unless-stopped
 
 volumes:

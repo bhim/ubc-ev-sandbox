@@ -64,7 +64,7 @@ services:
   # Onix BAP Kafka Plugin
   onix-bap-plugin-kafka:
     # Use pre-built image from Docker Hub
-    image: manendrapalsingh/onix-adapter:v0.9.3
+    image: manendrapalsingh/onix-adapter:v0.9.5
     pull_policy: always
     container_name: onix-bap-plugin-kafka
     ports:
@@ -73,16 +73,20 @@ services:
       # Mount config directory (writable for symlink creation, but original files won't be modified)
       - ${CONFIG_PATH:-./config}/onix-bap:/app/config
       # Mount schema directory (read-only)
-      - ../../schemas:/app/schemas:ro
+      - ../schemas:/app/schemas:ro
     environment:
       - CONFIG_FILE=/app/config/adapter.yaml
       - REDIS_PASSWORD=your-redis-password
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector-bap:4317
     restart: unless-stopped
     depends_on:
       kafka:
         condition: service_healthy
       redis-bap:
         condition: service_healthy
+      otel-collector-bap:
+        condition: service_started
     networks:
       - onix-network
     deploy:
@@ -93,6 +97,22 @@ services:
         reservations:
           cpus: '1'
           memory: 1G
+
+  # OTEL Collector for BAP - receives OTLP from onix-bap-plugin-kafka
+  otel-collector-bap:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector-bap
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-config.yml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "13133:13133"
+      - "55679:55679"
+    networks:
+      - onix-network
+    restart: unless-stopped
 
 networks:
   onix-network:

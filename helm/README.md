@@ -5,7 +5,7 @@ This guide demonstrates how to deploy the **onix-adapter** using **Helm charts**
 ## Key Features
 
 - **Schema Validation v2**: Uses `schemav2validator` with URL-based schema validation from Beckn protocol specifications
-- **OpenTelemetry Metrics**: Built-in OTEL metrics support (port 9003 for BAP, 9004 for BPP)
+- **OpenTelemetry Metrics & Traces**: Built-in OTEL metrics support (port 9003 for BAP, 9004 for BPP) with optional OTLP export and per-component OTEL Collector deployments controlled via Helm values
 - **Secret Management**: Production-ready secret management with Kubernetes Secrets and fallback to hardcoded values
 - **Simplified Service Names**: Clean service naming convention (mock-registry, mock-cds, mock-bap, mock-bpp)
 - **Routing Configuration**: Flexible routing with Phase 1 (CDS aggregation) and Phase 2+ (direct BPP routing) support
@@ -920,6 +920,94 @@ OpenTelemetry metrics are enabled by default:
 
 - **BAP**: Metrics port `9003`
 - **BPP**: Metrics port `9004`
+
+### OpenTelemetry / Observability (Docker Alignment)
+
+The Docker-based sandbox setups run each adapter with:
+
+- OTEL metrics on ports **9003** (BAP) / **9004** (BPP)
+- OTLP export via the env vars:
+  - `OTEL_EXPORTER_OTLP_INSECURE=true`
+  - `OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector-bap:4317` or `otel-collector-bpp:4317`
+- A per-component OTEL Collector (`otel/opentelemetry-collector-contrib:latest`) using `otel-config.yml`
+
+The Helm chart mirrors this behavior using two value blocks:
+
+```yaml
+# values.yaml (base)
+otel:
+  enabled: false          # Do NOT change existing behavior by default
+  insecure: "true"
+  exporterEndpoint: ""    # Auto-computed when empty
+  metricsPort: 0          # Overridden in values-bap.yaml / values-bpp.yaml
+
+otelCollector:
+  enabled: false          # Do NOT deploy collector by default
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: latest
+  ports:
+    grpc: 4317
+    http: 4318
+    healthCheck: 13133
+    zpages: 55679
+  config: ""              # Overridden per component
+```
+
+Component-specific values already set the correct ports and collector config to match the Docker compose files:
+
+- `values-bap.yaml`
+  - `otel.metricsPort: 9003`
+  - `otelCollector.config: |` – inline copy of `onix-adaptor/otel-config.yml` for BAP
+- `values-bpp.yaml`
+  - `otel.metricsPort: 9004`
+  - `otelCollector.config: |` – same collector pipeline, used for BPP
+
+When **enabled**, the chart will:
+
+- Add `OTEL_EXPORTER_OTLP_INSECURE` and `OTEL_EXPORTER_OTLP_ENDPOINT` env vars to the adapter pod
+- Expose the metrics port on the container and the Service
+- Deploy a per-component OTEL Collector `Deployment` + `Service`:
+  - BAP: `onix-api-monolithic-otel-collector-bap`
+  - BPP: `onix-api-monolithic-otel-collector-bpp`
+
+#### Enabling OTEL (BAP)
+
+To enable full OTEL (metrics + OTLP + collector) for BAP and keep all other behavior the same:
+
+```bash
+helm upgrade --install onix-bap ./helm \
+  -f ./helm/values-bap.yaml \
+  --set otel.enabled=true \
+  --set otelCollector.enabled=true
+```
+
+This produces the equivalent of the Docker setup where:
+
+- The adapter exports to `onix-bap-onix-api-monolithic-otel-collector-bap:4317`
+- The collector forwards to the network collector at `otel-collector-network:4318`
+
+#### Enabling OTEL (BPP)
+
+```bash
+helm upgrade --install onix-bpp ./helm \
+  -f ./helm/values-bpp.yaml \
+  --set otel.enabled=true \
+  --set otelCollector.enabled=true
+```
+
+This produces the equivalent of the BPP Docker setup, with:
+
+- `OTEL_EXPORTER_OTLP_ENDPOINT` pointing to the BPP collector service
+- Metrics port **9004** exposed on both pod and Service
+
+#### Leaving OTEL Disabled (Current Default)
+
+If you do **not** set `otel.enabled` / `otelCollector.enabled`:
+
+- No extra env vars are added
+- No OTEL Collector resources are deployed
+- Only the existing in-process OTEL plugin configuration (metricsPort in adapter.yaml) remains, matching the previous behavior.
 
 #### Routing Configuration
 

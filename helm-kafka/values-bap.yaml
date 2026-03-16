@@ -30,6 +30,81 @@ fullnameOverride: "onix"
 
 component: bap
 
+otel:
+  enabled: false
+  insecure: "true"
+  exporterEndpoint: ""
+  metricsPort: 9003
+
+otelCollector:
+  enabled: false
+  config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+
+    processors:
+      batch:
+        send_batch_size: 1024
+        timeout: 10s
+
+      filter/network_metrics:
+        error_mode: ignore
+        metrics:
+          metric:
+            - 'name != "onix_http_request_count"'
+
+      transform/beckn_ids:
+        error_mode: ignore
+        trace_statements:
+          - set(span.attributes["_beckn_tx"], span.attributes["transaction_id"]) where span.attributes["transaction_id"] != nil
+          - replace_pattern(span.attributes["_beckn_tx"], "-", "") where span.attributes["_beckn_tx"] != nil
+          - set(span.trace_id, TraceID(span.attributes["_beckn_tx"])) where span.attributes["_beckn_tx"] != nil
+
+      filter/network_traces:
+        error_mode: ignore
+        traces:
+          span:
+            - 'attributes["sender.id"] == nil'
+
+      filter/network_logs:
+        error_mode: ignore
+        logs:
+          log_record:
+            - 'resource.attributes["eid"] != "AUDIT"'
+
+    exporters:
+      otlp_http/collector2:
+        endpoint: http://otel-collector-network:4318
+        compression: gzip
+
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+      zpages:
+        endpoint: 0.0.0.0:55679
+
+    service:
+      extensions: [health_check, zpages]
+      pipelines:
+        metrics/network:
+          receivers: [otlp]
+          processors: [filter/network_metrics, batch]
+          exporters: [otlp_http/collector2]
+        traces/network:
+          receivers: [otlp]
+          processors: [filter/network_traces, transform/beckn_ids, batch]
+          exporters: [otlp_http/collector2]
+        logs/network:
+          receivers: [otlp]
+          processors: [filter/network_logs, batch]
+          exporters: [otlp_http/collector2]
+      telemetry:
+        logs:
+          level: debug
+
 # Secret management configuration
 secrets:
   enabled: false  # Set to true in production

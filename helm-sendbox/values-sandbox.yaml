@@ -5,6 +5,15 @@
 # Service configuration - Expose BAP and BPP externally, keep others internal
 service:
   type: LoadBalancer  # Expose BAP/BPP ONIX plugins externally (LoadBalancer or NodePort)
+
+# OpenTelemetry Configuration
+# Uncomment to enable OTEL collector and exporter for this sandbox deployment.
+# The otel and otelCollector values are set per-component in the base chart's
+# values-bap.yaml / values-bpp.yaml. Override here to enable them in sandbox:
+# otel:
+#   enabled: true
+# otelCollector:
+#   enabled: true
   # For NodePort instead: type: NodePort
   # For internal only: type: ClusterIP
 

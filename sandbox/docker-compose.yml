@@ -37,7 +37,7 @@ services:
 
   # Onix BAP Plugin
   onix-bap-plugin:
-    image: manendrapalsingh/onix-adapter:v0.9.3
+    image: manendrapalsingh/onix-adapter:v0.9.5
     pull_policy: always
     container_name: onix-bap-plugin
     ports:
@@ -51,18 +51,23 @@ services:
     environment:
       - CONFIG_FILE=/app/config/adapter.yaml
       - REDIS_PASSWORD=your-redis-password
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector-bap:4317
     restart: unless-stopped
     depends_on:
       redis-onix-bap:
         condition: service_healthy
       mock-registry:
         condition: service_healthy
+      otel-collector-bap:
+        condition: service_started
     networks:
       - onix-network
+ 
 
   # Onix BPP Plugin
   onix-bpp-plugin:
-    image: manendrapalsingh/onix-adapter:v0.9.3
+    image: manendrapalsingh/onix-adapter:v0.9.5
     pull_policy: always
     container_name: onix-bpp-plugin
     ports:
@@ -76,14 +81,19 @@ services:
     environment:
       - CONFIG_FILE=/app/config/adapter.yaml
       - REDIS_PASSWORD=your-redis-password
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector-bpp:4317
     restart: unless-stopped
     depends_on:
       redis-onix-bpp:
         condition: service_healthy
       mock-registry:
         condition: service_healthy
+      otel-collector-bpp:
+        condition: service_started
     networks:
       - onix-network
+
 
   # Mock CDS Service
   mock-cds:
@@ -169,7 +179,42 @@ services:
       retries: 3
       start_period: 10s
 
+  # OTel Collector for BAP - receives OTLP from onix-bap-plugin, exports to Prometheus/Jaeger/network collector
+  otel-collector-bap:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector-bap
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8889:8889"
+      - "8888:8888"
+      - "13133:13133"
+      - "55679:55679"
+    networks:
+      - onix-network
+    restart: unless-stopped
+
+
+  # OTel Collector for BPP - receives OTLP from onix-bpp-plugin, exports to Prometheus/Jaeger/network collector
+  otel-collector-bpp:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector-bpp
+    ports:
+      - "4321:4317"
+      - "4322:4318"
+      - "8891:8889"
+      - "8892:8888"
+      - "13134:13133"
+      - "55680:55679"
+    networks:
+      - onix-network
+    restart: unless-stopped
+
+
+
 networks:
   onix-network:
     driver: bridge
+
+
 

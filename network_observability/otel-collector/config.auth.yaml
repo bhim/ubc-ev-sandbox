@@ -1,0 +1,115 @@
+# OpenTelemetry Collector (AUTH MODE)
+# Protected paths:
+# 1) otel-collector -> otel-collector-network
+# 2) otel-collector -> global-reciver
+# All other paths remain no-auth.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  batch:
+    send_batch_size: 1024
+    timeout: 10s
+  batch/traces:
+    send_batch_size: 1024
+    timeout: 2s
+
+  filter/network_metrics:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'name != "onix_http_request_count"'
+
+  filter/network_traces:
+    error_mode: ignore
+    traces:
+      span:
+        - 'attributes["sender.id"] == nil'
+
+exporters:
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: onix
+    const_labels:
+      observability: otel-collector
+      service_name: onix-ev-charging-bap
+
+  otlp_grpc/jaeger:
+    endpoint: ${env:JAEGER_ENDPOINT:-jaeger:4317}
+
+  # Protected path: otel-collector -> global-reciver
+  otlp_http/receiver:
+    endpoint: ${env:RECEIVER_OTLP_ENDPOINT}
+    auth:
+      authenticator: oauth2client
+    tls:
+      ca_file: ${env:RECEIVER_CA_FILE}
+      insecure_skip_verify: false
+    compression: gzip
+    retry_on_failure:
+      enabled: true
+      initial_interval: 100ms
+      max_interval: 10s
+      max_elapsed_time: 300s
+
+  # Protected path: otel-collector -> otel-collector-network
+  otlp_http/collector2:
+    endpoint: ${env:COLLECTOR_NETWORK_ENDPOINT}
+    auth:
+      authenticator: oauth2client
+    tls:
+      ca_file: ${env:COLLECTOR_NETWORK_CA_FILE}
+      insecure_skip_verify: false
+    compression: gzip
+    retry_on_failure:
+      enabled: true
+      initial_interval: 100ms
+      max_interval: 10s
+      max_elapsed_time: 300s
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  zpages:
+    endpoint: 0.0.0.0:55679
+  # Dynamic token fetch from auth service (OAuth2 client credentials).
+  oauth2client:
+    token_url: ${env:AUTH_TOKEN_URL}
+    client_id: ${env:AUTH_CLIENT_ID}
+    client_secret: ${env:AUTH_CLIENT_SECRET}
+
+service:
+  extensions: [health_check, zpages, oauth2client]
+  pipelines:
+    metrics/app:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus]
+
+    metrics/network:
+      receivers: [otlp]
+      processors: [filter/network_metrics, batch]
+      exporters: [otlp_http/receiver, otlp_http/collector2]
+
+    traces/app:
+      receivers: [otlp]
+      processors: [batch/traces]
+      exporters: [otlp_grpc/jaeger]
+
+    traces/network:
+      receivers: [otlp]
+      processors: [filter/network_traces, batch/traces]
+      exporters: [otlp_http/receiver, otlp_http/collector2]
+
+    logs/network:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp_http/receiver, otlp_http/collector2]
+
+  telemetry:
+    logs:
+      level: info

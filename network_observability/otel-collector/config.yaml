@@ -1,0 +1,111 @@
+# OpenTelemetry Collector - receives OTLP from adapter (config/onix/adapter.yaml)
+# Adapter sends to otel-collector:4317.
+# App-level: all signals to Prometheus (metrics) and Jaeger (traces) for local debugging.
+# Network-level: filtered signals to Network Operator Receiver API.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  batch:
+    send_batch_size: 1024
+    timeout: 10s
+  batch/traces:
+    send_batch_size: 1024
+    timeout: 2s
+
+  # Network-level filter: only forward Beckn spec metrics to the receiver.
+  # Drops internal app metrics (onix_step_*, onix_plugin_*, beckn_*, runtime.*).
+  # OTTL: drop any metric whose name is NOT onix_http_request_count.
+  filter/network_metrics:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'name != "onix_http_request_count"'
+
+
+  # Network-level filter: only forward root API spans (have sender.id attribute).
+  # Drops internal step:* child spans which don't have sender.id.
+  # OTTL: drop any span where sender.id attribute is not present.
+  filter/network_traces:
+    error_mode: ignore
+    traces:
+      span:
+        - 'attributes["sender.id"] == nil'
+
+exporters:
+  # App-level: expose /metrics for Prometheus to scrape (Grafana displays)
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: onix
+    const_labels:
+      observability: otel-collector
+      service_name: onix-ev-charging-bap
+
+  # App-level: send traces to Jaeger (UI at http://localhost:16686)
+  otlp_grpc/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+  # Network-level: forward to Network Operator Receiver API.
+  # Sends OTLP over HTTP to /v1/traces, /v1/metrics, /v1/logs. Enable gzip per spec.
+  otlp_http/receiver:
+    endpoint: ${env:RECEIVER_OTLP_ENDPOINT}
+    compression: gzip
+    retry_on_failure:
+      enabled: true
+      initial_interval: 100ms
+      max_interval: 10s
+      max_elapsed_time: 300s
+
+  # Network-level: forward to second collector (Loki, Zipkin, Prometheus for local display)
+  otlp_http/collector2:
+    endpoint: http://otel-collector-network:4318
+    compression: gzip
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, zpages]
+  pipelines:
+    # App-level: ALL metrics -> Prometheus (stays local on the node)
+    metrics/app:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus]
+
+    # Network-level: FILTERED metrics -> Network Operator Receiver + Collector 2
+    metrics/network:
+      receivers: [otlp]
+      processors: [filter/network_metrics, batch]
+      exporters: [otlp_http/receiver, otlp_http/collector2]
+
+    # App-level: ALL traces -> Jaeger (stays local on the node)
+    traces/app:
+      receivers: [otlp]
+      processors: [batch/traces]
+      exporters: [otlp_grpc/jaeger]
+
+    # Network-level: filter -> Network Operator Receiver + Collector 2
+    traces/network:
+      receivers: [otlp]
+      processors: [filter/network_traces, batch/traces]
+      exporters: [otlp_http/receiver, otlp_http/collector2]
+
+    # Network-level: ALL audit logs -> Network Operator Receiver + Collector 2
+    logs/network:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp_http/receiver, otlp_http/collector2]
+
+  telemetry:
+    logs:
+      level: info

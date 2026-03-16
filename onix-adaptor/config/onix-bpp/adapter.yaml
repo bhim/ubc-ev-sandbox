@@ -10,6 +10,7 @@ log:
     - subscriber_id
     - module_id
     - parent_id
+
 http:
   port: 8002
   timeout:
@@ -20,15 +21,24 @@ http:
 pluginManager:
   root: /app/plugins
 
+# OpenTelemetry (OTLP) - metrics and traces sent to OTEL collector, then to Loki/backend
 plugins:
   otelsetup:
     id: otelsetup
     config:
-      serviceName: "beckn-onix"
+      serviceName: "onix-ev-charging-bpp"
       serviceVersion: "1.0.0"
-      enableMetrics: "true"
       environment: "development"
-      metricsPort: "9004"
+      domain: "ev_charging"
+      otlpEndpoint: "otel-collector-bpp:4317"
+      enableMetrics: "true"
+      networkMetricsGranularity: "2min"
+      networkMetricsFrequency: "4min"
+      enableTracing: "true"
+      enableLogs: "true"
+      timeInterval: "5"
+      auditFieldsConfig: "/app/config/audit-fields.yaml"
+
 
 
 modules:
@@ -83,7 +93,7 @@ modules:
             location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
             cacheTTL: "3600"
             extendedSchema_enabled: "true"
-            extendedSchema_cacheTTL: "86400"
+            extendedSchema_cacheTTL: "3600"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
             extendedSchema_allowedDomains: "beckn.org,example.com,raw.githubusercontent.com"
@@ -154,7 +164,7 @@ modules:
             location: https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml
             cacheTTL: "3600"
             extendedSchema_enabled: "true"
-            extendedSchema_cacheTTL: "86400"
+            extendedSchema_cacheTTL: "3600"
             extendedSchema_maxCacheSize: "100"
             extendedSchema_downloadTimeout: "30"
             extendedSchema_allowedDomains: "beckn.org,example.com,raw.githubusercontent.com"
@@ -167,7 +177,7 @@ modules:
         middleware:
           - id: reqpreprocessor
             config:
-              contextKeys: transaction_id,message_id,parent_id
+              contextKeys: transaction_id,message_id,parent_id  
               role: bpp
       steps:
         - validateSchema

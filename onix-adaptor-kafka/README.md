@@ -1,10 +1,147 @@
-# Kafka Integration for Beckn-ONIX
+# ONIX Adapter – Kafka Integration
 
-This directory contains the Kafka producer and consumer implementations for the Beckn-ONIX adapter.
+This guide describes how to run the **onix-adapter** for BAP and BPP using **Docker Compose** with **Kafka** messaging. Each stack includes Kafka, Redis, the adapter, and an OpenTelemetry collector.
+
+## Architecture Overview
+
+The adapter runs as a single container per side (BAP or BPP), with queue handlers for Kafka and HTTP receivers for callbacks. Each compose file starts:
+
+- **Kafka** – message broker (KRaft mode in BAP/BPP compose)
+- **Redis** – caching and state
+- **Onix adapter** – BAP or BPP (Kafka consumer/publisher + HTTP receiver)
+- **OTEL collector** – receives metrics, traces, and logs from the adapter via OTLP
+
+Run from the **onix-adaptor-kafka/** directory so paths like `./config` and `./otel-config.yml` resolve correctly.
+
+## Directory Structure
+
+```
+onix-adaptor-kafka/
+├── docker-compose-onix-bap-kafka-plugin.yml   # BAP stack (Kafka + Redis + adapter + otel-collector-bap)
+├── docker-compose-onix-bpp-kafka-plugin.yml   # BPP stack (Kafka + Redis + adapter + otel-collector-bpp)
+├── config/
+│   ├── onix-bap/
+│   │   ├── adapter.yaml                       # BAP adapter configuration
+│   │   ├── audit-fields.yaml                  # PII masking for logs/traces (BAP)
+│   │   ├── bapTxnReciever-routing.yaml       # BAP receiver routing rules
+│   │   └── bapTxnCaller-routing.yaml          # BAP caller routing rules
+│   └── onix-bpp/
+│       ├── adapter.yaml                       # BPP adapter configuration
+│       ├── audit-fields.yaml                  # PII masking for logs/traces (BPP)
+│       ├── bppTxnReciever-routing.yaml       # BPP receiver routing rules
+│       └── bppTxnCaller-routing.yaml          # BPP caller routing rules
+├── otel-config.yml                           # OTEL collector config (used by both BAP and BPP compose)
+├── config.md                                 # Full configuration reference
+└── README.md                                 # This file
+```
+
+## Prerequisites
+
+- Docker Engine 20.10+
+- Docker Compose 2.0+
+- Onix-adapter image: `manendrapalsingh/onix-adapter:v0.9.5` (same image for BAP and BPP)
+- Schema files in `../schemas` (read-only). Ensure the parent of `onix-adaptor-kafka` contains a `schemas` directory.
+
+## Quick Start
+
+Run all commands from the **onix-adaptor-kafka/** directory.
+
+### BAP (Buyer App Provider)
+
+1. **Start the stack** (Zookeeper + Kafka + Redis + onix-bap-plugin-kafka + otel-collector-bap):
+   ```bash
+   cd onix-adaptor-kafka
+   docker-compose -f docker-compose-onix-bap-kafka-plugin.yml up -d
+   ```
+
+2. **Verify containers:**
+   ```bash
+   docker ps | grep -E "(redis-bap|onix-bap-plugin-kafka|otel-collector-bap)"
+   ```
+
+3. **Adapter:** HTTP receiver at `http://localhost:8001/bap/receiver/`; caller consumes from Kafka topics (e.g. `bap.discover`).
+
+4. **Logs:**
+   ```bash
+   docker-compose -f docker-compose-onix-bap-kafka-plugin.yml logs -f onix-bap-plugin-kafka
+   ```
+
+### BPP (Buyer Platform Provider)
+
+1. **Start the stack** (Zookeeper + Kafka + Redis + onix-bpp-plugin-kafka + otel-collector-bpp):
+   ```bash
+   cd onix-adaptor-kafka
+   docker-compose -f docker-compose-onix-bpp-kafka-plugin.yml up -d
+   ```
+
+2. **Verify containers:**
+   ```bash
+   docker ps | grep -E "(redis-bpp|onix-bpp-plugin-kafka|otel-collector-bpp)"
+   ```
+
+3. **Adapter:** HTTP receiver at `http://localhost:8002/bpp/receiver/`; caller consumes from Kafka topics (e.g. `bpp.on_discover`).
+
+## Configuration Details
+
+For full configuration reference (all keys, plugins, OTLP, audit-fields, Kafka topics), see [config.md](./config.md).
+
+- **OpenTelemetry:** OTLP endpoint `otel-collector-bap:4317` (BAP) or `otel-collector-bpp:4317` (BPP); metrics, traces, and logs with PII masking via `audit-fields.yaml`.
+- **Audit fields:** Each side has an `audit-fields.yaml`; see [config.md](./config.md#audit-fields-pii-masking).
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `CONFIG_FILE` | Path to the adapter configuration file (default: `/app/config/adapter.yaml`) |
+| `REDIS_PASSWORD` | Redis password; must match the Redis service (`your-redis-password` in compose) |
+| `OTEL_EXPORTER_OTLP_INSECURE` | Set by compose for OTLP to collector |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Set by compose (otel-collector-bap:4317 or otel-collector-bpp:4317) |
+| `CONFIG_PATH` | Optional; base path for config. Default `./config`. |
+
+## Volume Mounts
+
+Paths are relative to the **onix-adaptor-kafka/** directory.
+
+| Mount (host) | Container | Service |
+|--------------|-----------|---------|
+| `${CONFIG_PATH:-./config}/onix-bap` or `onix-bpp` | `/app/config` | onix-bap-plugin-kafka / onix-bpp-plugin-kafka |
+| `../schemas` | `/app/schemas:ro` | onix-bap-plugin-kafka / onix-bpp-plugin-kafka |
+| `./otel-config.yml` | `/etc/otelcol/config.yaml:ro` | otel-collector-bap / otel-collector-bpp |
+
+## Network Configuration
+
+All services use the **onix-network** bridge:
+- **BAP stack**: Kafka, Zookeeper, redis-bap, onix-bap-plugin-kafka, otel-collector-bap
+- **BPP stack**: Kafka, Zookeeper, redis-bpp, onix-bpp-plugin-kafka, otel-collector-bpp
+
+The adapter sends OTLP to its collector over this network.
+
+## Troubleshooting
+
+- **OTEL collector:** If the adapter fails to send telemetry, ensure the collector is up and using `./otel-config.yml`:
+  ```bash
+  docker-compose -f docker-compose-onix-bap-kafka-plugin.yml logs otel-collector-bap
+  ```
+- **Config mount:** Ensure `otel-config.yml` exists and is mounted:
+  ```bash
+  docker exec otel-collector-bap cat /etc/otelcol/config.yaml | head -20
+  ```
+
+## Customization
+
+- **Image tag:** Both BAP and BPP use `manendrapalsingh/onix-adapter:v0.9.5`; update the `image` field in the compose files to use a different tag.
+- **Adapter config:** Edit files in `config/onix-bap/` or `config/onix-bpp/` (including `adapter.yaml`, `audit-fields.yaml`, and routing files).
+- **OTEL collector:** Edit `otel-config.yml` in this folder; both stacks use it.
+
+---
+
+## Kafka Plugin Reference
+
+The following sections describe the Kafka producer and consumer configuration in detail. All configuration is provided through adapter YAML files.
 
 ## Configuration
 
-All configuration is provided through adapter YAML files. Environment variables are not used.
+All configuration is provided through adapter YAML files. Environment variables (e.g. CONFIG_FILE, REDIS_PASSWORD, OTEL_*) are set by Docker Compose.
 
 ### YAML Configuration Example
 

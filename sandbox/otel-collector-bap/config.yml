@@ -1,0 +1,115 @@
+# OpenTelemetry Collector (BAP) - receives OTLP from onix-bap-plugin
+# Adapter sends to otel-collector-bap:4317.
+# App-level: all signals to Prometheus (metrics) and Jaeger (traces) for local debugging.
+# Network-level: filtered signals to otel-collector-network.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  batch:
+    send_batch_size: 1024
+    timeout: 10s
+
+
+  # Network-level filter: only forward Beckn spec metrics to the receiver.
+  # Drops internal app metrics (onix_step_*, onix_plugin_*, beckn_*, runtime.*).
+  # OTTL: drop any metric whose name is NOT onix_http_request_count.
+  filter/network_metrics:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'name != "onix_http_request_count"'
+
+  # Map Beckn transaction_id -> trace_id and message_id -> span_id for UI correlation.
+  # UUID format: remove hyphens for trace_id (32 hex chars); first 16 hex chars for span_id.
+  transform/beckn_ids:
+    error_mode: ignore
+    trace_statements:
+      - set(span.attributes["_beckn_tx"], span.attributes["transaction_id"]) where span.attributes["transaction_id"] != nil
+      - replace_pattern(span.attributes["_beckn_tx"], "-", "") where span.attributes["_beckn_tx"] != nil
+      - set(span.trace_id, TraceID(span.attributes["_beckn_tx"])) where span.attributes["_beckn_tx"] != nil
+
+  # Network-level filter: only forward root API spans (have sender.id attribute).
+  # Drops internal step:* child spans which don't have sender.id.
+  # OTTL: drop any span where sender.id attribute is not present.
+  filter/network_traces:
+    error_mode: ignore
+    traces:
+      span:
+        - 'attributes["sender.id"] == nil'
+
+  # Network-level logs: only forward records that have checkSum attribute
+  filter/network_logs:
+    error_mode: ignore
+    logs:
+      log_record:
+        - 'resource.attributes["eid"] != "AUDIT"'
+
+exporters:
+  # App-level: expose /metrics for Prometheus to scrape (Grafana displays)
+  # prometheus:
+  #   endpoint: "0.0.0.0:8889"
+  #   namespace: onix
+  #   const_labels:
+  #     observability: otel-collector
+  #     service_name: onix-ev-charging-bap
+
+  # App-level: send traces to Jaeger (UI at http://localhost:16686)
+  # otlp_grpc/jaeger:
+  #   endpoint: jaeger:4317
+  #   tls:
+  #     insecure: true
+
+  # Network-level: forward to second collector (Loki, Zipkin, Prometheus for local display)
+  otlp_http/collector2:
+    endpoint: http://otel-collector-network:4318
+    compression: gzip
+
+
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, zpages]
+  pipelines:
+    # App-level: ALL metrics -> Prometheus (stays local on the node)
+    # metrics/app:
+    #   receivers: [otlp]
+    #   processors: [batch]
+    #   exporters: [prometheus]
+
+    # Network-level: FILTERED metrics -> Collector 2
+    metrics/network:
+      receivers: [otlp]
+      processors: [filter/network_metrics, batch]
+      exporters: [otlp_http/collector2]
+
+    # App-level: ALL traces -> transform Beckn IDs -> Jaeger (stays local on the node)
+    # traces/app:
+    #   receivers: [otlp]
+    #   processors: [ batch]
+    #   exporters: [otlp_grpc/jaeger]
+
+    # Network-level: filter + transform Beckn IDs -> Collector 2
+    traces/network:
+      receivers: [otlp]
+      processors: [filter/network_traces, transform/beckn_ids, batch]
+      exporters: [otlp_http/collector2]
+
+    # Network-level: ALL audit logs -> Collector 2
+    logs/network:
+      receivers: [otlp]
+      processors: [filter/network_logs, batch]
+      exporters: [otlp_http/collector2]
+
+  telemetry:
+    logs:
+      level: debug
