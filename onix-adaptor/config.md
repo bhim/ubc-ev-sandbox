@@ -6,6 +6,8 @@ This document describes the ONIX adapter configuration for REST API/HTTP-based d
 
 - **BAP Adapter**: `config/onix-bap/adapter.yaml`
 - **BPP Adapter**: `config/onix-bpp/adapter.yaml`
+- **BAP Audit Fields**: `config/onix-bap/audit-fields.yaml`
+- **BPP Audit Fields**: `config/onix-bpp/audit-fields.yaml`
 
 ---
 
@@ -16,7 +18,7 @@ This document describes the ONIX adapter configuration for REST API/HTTP-based d
 | `appName` | `onix-ev-charging` (BAP) / `bpp-ev-charging` (BPP) | Application identifier for logging and identification |
 | `log.level` | `debug` | Logging verbosity level (debug/info/warn/error) |
 | `log.destinations[].type` | `stdout` | Log output destination |
-| `log.contextKeys` | `transaction_id, message_id, subscriber_id, module_id` | Keys included in structured logs for tracing |
+| `log.contextKeys` | `transaction_id, message_id, subscriber_id, module_id, parent_id` | Keys included in structured logs for tracing |
 
 ---
 
@@ -39,16 +41,56 @@ This document describes the ONIX adapter configuration for REST API/HTTP-based d
 
 ---
 
-## OpenTelemetry Plugin
+## OpenTelemetry Plugin (OTLP)
+
+Metrics, traces, and logs are sent via OTLP to the OTEL collector; no standalone metrics port is used.
 
 | Key | Value | Description |
 |-----|-------|-------------|
 | `plugins.otelsetup.id` | `otelsetup` | OpenTelemetry plugin identifier |
-| `plugins.otelsetup.config.serviceName` | `beckn-onix` | Service name for telemetry |
+| `plugins.otelsetup.config.serviceName` | `onix-ev-charging-bap` (BAP) / `onix-ev-charging-bpp` (BPP) | Service name for telemetry |
 | `plugins.otelsetup.config.serviceVersion` | `1.0.0` | Service version for telemetry |
-| `plugins.otelsetup.config.enableMetrics` | `true` | Enable Prometheus metrics collection |
 | `plugins.otelsetup.config.environment` | `development` | Environment name (development/staging/production) |
-| `plugins.otelsetup.config.metricsPort` | `9003` (BAP) / `9004` (BPP) | Prometheus metrics endpoint port |
+| `plugins.otelsetup.config.domain` | `ev_charging` | Domain for telemetry classification |
+| `plugins.otelsetup.config.otlpEndpoint` | `otel-collector-bap:4317` (BAP) / `otel-collector-bpp:4317` (BPP) | OTLP gRPC endpoint for the OTEL collector |
+| `plugins.otelsetup.config.enableMetrics` | `true` | Enable metrics export |
+| `plugins.otelsetup.config.networkMetricsGranularity` | `2min` | Granularity for network metrics |
+| `plugins.otelsetup.config.networkMetricsFrequency` | `4min` | Frequency for network metrics aggregation |
+| `plugins.otelsetup.config.enableTracing` | `true` | Enable trace export |
+| `plugins.otelsetup.config.enableLogs` | `true` | Enable log export |
+| `plugins.otelsetup.config.timeInterval` | `5` | Time interval (seconds) for periodic telemetry |
+| `plugins.otelsetup.config.auditFieldsConfig` | `/app/config/audit-fields.yaml` | Path to PII/audit field masking config for logs and traces |
+
+---
+
+## Audit Fields (PII Masking)
+
+The file referenced by `auditFieldsConfig` defines which fields are treated as PII and how they are masked in logs and traces.
+
+### Config file
+
+- **Path**: `config/onix-bap/audit-fields.yaml` (BAP) / `config/onix-bpp/audit-fields.yaml` (BPP)
+- **Mounted in container**: `/app/config/audit-fields.yaml`
+
+### Structure
+
+| Section | Description |
+|--------|-------------|
+| `piiPatterns` | Named patterns (regex + mask type) for email, phone, tax_id, account, generic |
+| `piiPaths` | JSON paths into the message (e.g. `message.order.beckn:buyer.beckn:email`) mapped to a pattern |
+
+### Pattern types
+
+- **replace**: Replace value with a fixed mask (e.g. `***@***.***` for email).
+- **last4**: Show only last 4 characters.
+
+### Example paths covered
+
+- Buyer: email, telephone, displayName, taxID  
+- Payment: paymentURL, txnRef, paidAt, settlement accounts (accountHolderName, accountNumber, vpa, paymentURL)  
+- Fulfillment: address, streetAddress, extendedAddress, addressLocality, postalCode  
+- Support: name, phone, email  
+- Seller/provider: supportEmail, supportPhone, gstNumber  
 
 ---
 
@@ -64,6 +106,7 @@ Receives HTTP callbacks from CDS (Phase 1) and BPPs (Phase 2+). Uses standard HT
 | `modules[].path` | `/bap/receiver/` | HTTP endpoint path for receiving callbacks |
 | `handler.type` | `std` | Standard HTTP handler type |
 | `handler.role` | `bap` | Handler role (BAP) |
+| `handler.subscriberId` | `ev-charging.sandbox1.com` | BAP subscriber ID |
 | `handler.httpClientConfig.maxIdleConns` | `1000` | Maximum idle HTTP connections |
 | `handler.httpClientConfig.maxIdleConnsPerHost` | `200` | Maximum idle connections per host |
 | `handler.httpClientConfig.idleConnTimeout` | `300s` | Idle connection timeout |
@@ -106,6 +149,11 @@ Receives HTTP callbacks from CDS (Phase 1) and BPPs (Phase 2+). Uses standard HT
 | `plugins.schemaValidator.config.type` | `url` | Schema source type (url/file) |
 | `plugins.schemaValidator.config.location` | `https://raw.githubusercontent.com/beckn/protocol-specifications-v2/refs/heads/core-v2.0.0-rc/api/beckn.yaml` | Beckn protocol schema URL |
 | `plugins.schemaValidator.config.cacheTTL` | `3600` | Schema cache duration in seconds |
+| `plugins.schemaValidator.config.extendedSchema_enabled` | `true` | Enable extended (domain) schema validation |
+| `plugins.schemaValidator.config.extendedSchema_cacheTTL` | `3600` | Extended schema cache TTL in seconds |
+| `plugins.schemaValidator.config.extendedSchema_maxCacheSize` | `100` | Max number of extended schemas to cache |
+| `plugins.schemaValidator.config.extendedSchema_downloadTimeout` | `30` | Download timeout in seconds for extended schemas |
+| `plugins.schemaValidator.config.extendedSchema_allowedDomains` | `beckn.org,example.com,raw.githubusercontent.com` | Allowed domains for extended schema URLs |
 
 ### Signature Validator Plugin
 
@@ -125,7 +173,7 @@ Receives HTTP callbacks from CDS (Phase 1) and BPPs (Phase 2+). Uses standard HT
 | Key | Value | Description |
 |-----|-------|-------------|
 | `plugins.middleware[].id` | `reqpreprocessor` | Request preprocessor middleware |
-| `plugins.middleware[].config.uuidKeys` | `transaction_id,message_id` | JSON keys to generate UUIDs for |
+| `plugins.middleware[].config.contextKeys` | `transaction_id,message_id,parent_id` | JSON keys to propagate in context (e.g. for UUID generation/tracing) |
 | `plugins.middleware[].config.role` | `bap` | Role for request preprocessing |
 
 ### Processing Steps
@@ -150,6 +198,7 @@ Entry point for all requests from BAP. Routes to CDS (Phase 1) or directly to BP
 | `modules[].path` | `/bap/caller/` | HTTP endpoint path for sending requests |
 | `handler.type` | `std` | Standard HTTP handler type |
 | `handler.role` | `bap` | Handler role (BAP) |
+| `handler.subscriberId` | `ev-charging.sandbox1.com` | BAP subscriber ID |
 | `handler.httpClientConfig.maxIdleConns` | `1000` | Maximum idle HTTP connections |
 | `handler.httpClientConfig.maxIdleConnsPerHost` | `200` | Maximum idle connections per host |
 | `handler.httpClientConfig.idleConnTimeout` | `300s` | Idle connection timeout |
@@ -163,6 +212,13 @@ Same plugins as bapTxnReceiver (registry, keyManager, cache, schemaValidator) wi
 |-----|-------|-------------|
 | `plugins.router.config.routingConfig` | `/app/config/bap_caller_routing.yaml` | Path to caller routing rules file |
 | `plugins.signer.id` | `signer` | Signer plugin identifier (caller only) |
+
+### Middleware
+
+| Key | Value | Description |
+|-----|-------|-------------|
+| `plugins.middleware[].config.contextKeys` | `transaction_id,message_id,parent_id` | Context keys for preprocessing |
+| `plugins.middleware[].config.role` | `bap` | Role for request preprocessing |
 
 ### Processing Steps
 
@@ -186,12 +242,15 @@ Receives HTTP requests from CDS (Phase 1) and BAP-ONIX (Phase 2+). Routes to bac
 | `modules[].path` | `/bpp/receiver/` | HTTP endpoint path for receiving requests |
 | `handler.type` | `std` | Standard HTTP handler type |
 | `handler.role` | `bpp` | Handler role (BPP) |
+| `handler.subscriberId` | `ev-charging.sandbox2.com` | BPP subscriber ID |
 | `handler.httpClientConfig.maxIdleConns` | `1000` | Maximum idle HTTP connections |
 | `handler.httpClientConfig.maxIdleConnsPerHost` | `200` | Maximum idle connections per host |
 | `handler.httpClientConfig.idleConnTimeout` | `300s` | Idle connection timeout |
 | `handler.httpClientConfig.responseHeaderTimeout` | `5s` | Response header timeout |
 
-### Key Manager Plugin (BPP)
+### Plugins
+
+Same structure as BAP receiver: registry, keyManager, cache, schemaValidator (with extended schema options), signValidator, router, middleware. BPP-specific values:
 
 | Key | Value | Description |
 |-----|-------|-------------|
@@ -201,24 +260,18 @@ Receives HTTP requests from CDS (Phase 1) and BAP-ONIX (Phase 2+). Routes to bac
 | `plugins.keyManager.config.signingPublicKey` | `2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=` | Public key for verification |
 | `plugins.keyManager.config.encrPrivateKey` | `HH3KyEg4KhS8jVxPtEHMr6FTqyL0ef100vSPoZ2U0x4=` | Private key for encryption |
 | `plugins.keyManager.config.encrPublicKey` | `2ja8jS4O/HhyfnTzgC81mXkNNAueeqGEhv42FJtoUv8=` | Public key for decryption |
-
-### Cache Plugin (BPP)
-
-| Key | Value | Description |
-|-----|-------|-------------|
 | `plugins.cache.config.addr` | `redis-onix-bpp:6379` | Redis server address for caching |
-
-### Router Plugin (BPP)
-
-| Key | Value | Description |
-|-----|-------|-------------|
 | `plugins.router.config.routingConfig` | `/app/config/bpp_receiver_routing.yaml` | Path to receiver routing rules file |
-
-### Middleware (BPP)
-
-| Key | Value | Description |
-|-----|-------|-------------|
 | `plugins.middleware[].config.role` | `bpp` | Role for request preprocessing |
+| `plugins.middleware[].config.contextKeys` | `transaction_id,message_id,parent_id` | Context keys for preprocessing |
+
+### Processing Steps
+
+| Step | Description |
+|------|-------------|
+| `validateSign` | Validate incoming message signature |
+| `addRoute` | Apply routing rules to determine destination |
+| `validateSchema` | Validate message against Beckn protocol schema |
 
 ---
 
@@ -234,17 +287,31 @@ Receives responses from backend via HTTP and sends HTTP to CDS (Phase 1) or BAP-
 | `modules[].path` | `/bpp/caller/` | HTTP endpoint path for sending responses |
 | `handler.type` | `std` | Standard HTTP handler type |
 | `handler.role` | `bpp` | Handler role (BPP) |
-| `handler.subscriberId` | `ev-charging.sandbox2.com` | BPP subscriber ID (caller only) |
+| `handler.subscriberId` | `ev-charging.sandbox2.com` | BPP subscriber ID |
 | `handler.httpClientConfig.maxIdleConns` | `1000` | Maximum idle HTTP connections |
 | `handler.httpClientConfig.maxIdleConnsPerHost` | `200` | Maximum idle connections per host |
 | `handler.httpClientConfig.idleConnTimeout` | `300s` | Idle connection timeout |
 | `handler.httpClientConfig.responseHeaderTimeout` | `5s` | Response header timeout |
 
-### Router Plugin (BPP Caller)
+### Plugins
+
+BPP Caller uses the same plugin set as BAP Caller: registry, keyManager, cache, schemaValidator (with extended schema options), router, signer, middleware. BPP-specific values:
 
 | Key | Value | Description |
 |-----|-------|-------------|
 | `plugins.router.config.routingConfig` | `/app/config/bpp_caller_routing.yaml` | Path to caller routing rules file |
+| `plugins.keyManager.config.networkParticipant` | `ev-charging.sandbox2.com` | BPP subscriber ID |
+| `plugins.cache.config.addr` | `redis-onix-bpp:6379` | Redis server address |
+| `plugins.middleware[].config.contextKeys` | `transaction_id,message_id,parent_id` | Context keys for preprocessing |
+| `plugins.middleware[].config.role` | `bpp` | Role for request preprocessing |
+
+### Processing Steps
+
+| Step | Description |
+|------|-------------|
+| `validateSchema` | Validate message against Beckn protocol schema |
+| `addRoute` | Apply routing rules to determine destination |
+| `sign` | Sign the message before sending |
 
 ---
 
@@ -272,9 +339,10 @@ Receives responses from backend via HTTP and sends HTTP to CDS (Phase 1) or BAP-
 
 ## Additional Notes
 
-- All HTTP handlers use synchronous request/response pattern
-- No message broker required - direct HTTP communication
-- Routing rules determine destination based on action type and phase
-- Signature validation occurs on receiver side
-- Message signing occurs on caller side
-- Schema validation ensures protocol compliance
+- All HTTP handlers use synchronous request/response pattern.
+- No message broker required — direct HTTP communication.
+- Routing rules determine destination based on action type and phase.
+- Signature validation occurs on receiver side; message signing on caller side.
+- Schema validation (core + optional extended/domain schemas) ensures protocol compliance.
+- Telemetry (metrics, traces, logs) is sent via OTLP to the OTEL collector; PII is masked using `audit-fields.yaml`.
+- Optional Dedi registry can be used by uncommenting the `dediregistry` block and commenting the default `registry` block in adapter YAML.

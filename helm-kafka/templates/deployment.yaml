@@ -73,6 +73,11 @@ spec:
         - name: http
           containerPort: {{ .Values.service.targetPort }}
           protocol: TCP
+        {{- if and .Values.otel.enabled (gt (int .Values.otel.metricsPort) 0) }}
+        - name: metrics
+          containerPort: {{ .Values.otel.metricsPort }}
+          protocol: TCP
+        {{- end }}
         env:
         {{- range .Values.env }}
         - name: {{ .name }}
@@ -170,6 +175,14 @@ spec:
         {{- end }}
         - name: CONFIG_FILE
           value: /app/config/adapter.yaml
+        {{- if .Values.otel.enabled }}
+        {{- $otelFullname := include "onix-kafka.fullname" . }}
+        {{- $otelEndpoint := .Values.otel.exporterEndpoint | default (printf "%s-otel-collector-%s:%d" $otelFullname .Values.component (int .Values.otelCollector.ports.grpc)) }}
+        - name: OTEL_EXPORTER_OTLP_INSECURE
+          value: {{ .Values.otel.insecure | quote }}
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: {{ $otelEndpoint | quote }}
+        {{- end }}
         volumeMounts:
         - name: config
           mountPath: /app/config/onix-{{ .Values.component }}

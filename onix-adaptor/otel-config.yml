@@ -13,9 +13,7 @@ processors:
   batch:
     send_batch_size: 1024
     timeout: 10s
-  batch/traces:
-    send_batch_size: 1024
-    timeout: 2s
+
 
   # Network-level filter: only forward Beckn spec metrics to the receiver.
   # Drops internal app metrics (onix_step_*, onix_plugin_*, beckn_*, runtime.*).
@@ -53,18 +51,18 @@ processors:
 
 exporters:
   # App-level: expose /metrics for Prometheus to scrape (Grafana displays)
-  prometheus:
-    endpoint: "0.0.0.0:8889"
-    namespace: onix
-    const_labels:
-      observability: otel-collector
-      service_name: onix-ev-charging-bap
+  # prometheus:
+  #   endpoint: "0.0.0.0:8889"
+  #   namespace: onix
+  #   const_labels:
+  #     observability: otel-collector
+  #     service_name: onix-ev-charging-bap
 
   # App-level: send traces to Jaeger (UI at http://localhost:16686)
-  otlp_grpc/jaeger:
-    endpoint: jaeger:4317
-    tls:
-      insecure: true
+  # otlp_grpc/jaeger:
+  #   endpoint: jaeger:4317
+  #   tls:
+  #     insecure: true
 
   # Network-level: forward to second collector (Loki, Zipkin, Prometheus for local display)
   otlp_http/collector2:
@@ -83,10 +81,10 @@ service:
   extensions: [health_check, zpages]
   pipelines:
     # App-level: ALL metrics -> Prometheus (stays local on the node)
-    metrics/app:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [prometheus]
+    # metrics/app:
+    #   receivers: [otlp]
+    #   processors: [batch]
+    #   exporters: [prometheus]
 
     # Network-level: FILTERED metrics -> Collector 2
     metrics/network:
@@ -95,15 +93,15 @@ service:
       exporters: [otlp_http/collector2]
 
     # App-level: ALL traces -> transform Beckn IDs -> Jaeger (stays local on the node)
-    traces/app:
-      receivers: [otlp]
-      processors: [ batch/traces]
-      exporters: [otlp_grpc/jaeger]
+    # traces/app:
+    #   receivers: [otlp]
+    #   processors: [ batch]
+    #   exporters: [otlp_grpc/jaeger]
 
     # Network-level: filter + transform Beckn IDs -> Collector 2
     traces/network:
       receivers: [otlp]
-      processors: [filter/network_traces, transform/beckn_ids, batch/traces]
+      processors: [filter/network_traces, transform/beckn_ids, batch]
       exporters: [otlp_http/collector2]
 
     # Network-level: ALL audit logs -> Collector 2

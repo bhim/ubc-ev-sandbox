@@ -1,89 +1,97 @@
-# Monolithic Architecture - API Integration
+# ONIX Adapter – API Integration
 
-This guide demonstrates how to integrate the **onix-adapter** with BAP and BPP applications using **Docker containers** in a **monolithic architecture** with **REST API** communication.
+This guide describes how to run the **onix-adapter** for BAP and BPP using **Docker Compose** with **REST API** communication. Each stack includes Redis, the adapter, and an OpenTelemetry collector.
 
 ## Architecture Overview
 
-In a monolithic architecture, the onix-adapter runs as a single container service that handles both incoming and outgoing API requests. All communication happens via HTTP/REST API endpoints.
+The adapter runs as a single container per side (BAP or BPP), handling both incoming and outgoing HTTP requests. Each compose file starts:
 
-### Components
+- **Redis** – caching and state
+- **Onix adapter** – BAP or BPP HTTP endpoints
+- **OTEL collector** – receives metrics, traces, and logs from the adapter via OTLP
 
-- **Redis**: Used for caching and state management
-- **Onix-Adapter**: Single container handling all BAP/BPP operations
-- **API Communication**: Direct HTTP/REST API calls between services
+All application communication is over HTTP/REST. Run from the **onix-adaptor/** directory so paths like `./config` and `./otel-config.yml` resolve correctly.
 
 ## Directory Structure
 
 ```
-docker/api/monolithic/
-├── docker-compose-onix-bap-plugin.yml          # BAP service configuration
-├── docker-compose-onix-bpp-plugin.yml          # BPP service configuration
+onix-adaptor/
+├── docker-compose-onix-bap-plugin.yml   # BAP service configuration
+├── docker-compose-onix-bpp-plugin.yml   # BPP service configuration
 ├── config/
 │   ├── onix-bap/
-│   │   ├── adapter.yaml            # BAP adapter configuration
-│   │   ├── bap_caller_routing.yaml # BAP caller routing rules
-│   │   └── bap_receiver_routing.yaml # BAP receiver routing rules
+│   │   ├── adapter.yaml                # BAP adapter configuration
+│   │   ├── audit-fields.yaml           # PII masking for logs/traces (BAP)
+│   │   ├── bap_caller_routing.yaml     # BAP caller routing rules
+│   │   └── bap_receiver_routing.yaml   # BAP receiver routing rules
 │   └── onix-bpp/
-│       ├── adapter.yaml            # BPP adapter configuration
-│       ├── bpp_caller_routing.yaml  # BPP caller routing rules
-│       └── bpp_receiver_routing.yaml # BPP receiver routing rules
-└── README.md                       # This file
+│       ├── adapter.yaml                # BPP adapter configuration
+│       ├── audit-fields.yaml           # PII masking for logs/traces (BPP)
+│       ├── bpp_caller_routing.yaml     # BPP caller routing rules
+│       └── bpp_receiver_routing.yaml   # BPP receiver routing rules
+├── otel-config.yml                     # OTEL collector config (used by both BAP and BPP compose)
+├── config.md                           # Full configuration reference
+└── README.md                           # This file
 ```
 
 ## Prerequisites
 
 - Docker Engine 20.10+
 - Docker Compose 2.0+
-- Access to onix-adapter Docker images:
-  - `manendrapalsingh/onix-bap-plugin:latest`
-  - `manendrapalsingh/onix-bpp-plugin:latest`
-- Schema files from `../../schemas` directory (read-only)
+- Onix-adapter image: `manendrapalsingh/onix-adapter:v0.9.5` (same image for BAP and BPP)
+- Schema files in `../schemas` (read-only). Ensure the parent of `onix-adaptor` contains a `schemas` directory.
 
 ## Quick Start
 
-### For BAP (Buyer App Provider)
+Run all commands from the **onix-adaptor/** directory.
 
-1. **Start the BAP services:**
+### BAP (Buyer App Provider)
+
+1. **Start the stack** (Redis + onix-bap-plugin + otel-collector-bap):
    ```bash
+   cd onix-adaptor
    docker-compose -f docker-compose-onix-bap-plugin.yml up -d
    ```
 
-2. **Verify services are running:**
+2. **Verify containers:**
    ```bash
-   docker ps | grep -E "(redis-onix-bap|onix-bap-plugin)"
+   docker ps | grep -E "(redis-onix-bap|onix-bap-plugin|otel-collector-bap)"
    ```
 
-3. **Check logs:**
+3. **Adapter endpoints:**
+   - Caller: `http://localhost:8001/bap/caller/`
+   - Receiver: `http://localhost:8001/bap/receiver/`
+
+4. **Logs:**
    ```bash
    docker-compose -f docker-compose-onix-bap-plugin.yml logs -f onix-bap-plugin
    ```
 
-4. **Access the BAP adapter:**
-   - Caller endpoint: `http://localhost:8001/bap/caller/`
-   - Receiver endpoint: `http://localhost:8001/bap/receiver/`
+### BPP (Buyer Platform Provider)
 
-### For BPP (Buyer Platform Provider)
-
-1. **Start the BPP services:**
+1. **Start the stack** (Redis + onix-bpp-plugin + otel-collector-bpp):
    ```bash
+   cd onix-adaptor
    docker-compose -f docker-compose-onix-bpp-plugin.yml up -d
    ```
 
-2. **Verify services are running:**
+2. **Verify containers:**
    ```bash
-   docker ps | grep -E "(redis-onix-bpp|onix-bpp-plugin)"
+   docker ps | grep -E "(redis-onix-bpp|onix-bpp-plugin|otel-collector-bpp)"
    ```
 
-3. **Check logs:**
+3. **Adapter endpoints:**
+   - Caller: `http://localhost:8002/bpp/caller/`
+   - Receiver: `http://localhost:8002/bpp/receiver/`
+
+4. **Logs:**
    ```bash
    docker-compose -f docker-compose-onix-bpp-plugin.yml logs -f onix-bpp-plugin
    ```
 
-4. **Access the BPP adapter:**
-   - Caller endpoint: `http://localhost:8002/bpp/caller/`
-   - Receiver endpoint: `http://localhost:8002/bpp/receiver/`
-
 ## Configuration Details
+
+For full configuration reference (all keys, plugins, OTLP, audit-fields), see [config.md](./config.md).
 
 ### BAP Configuration
 
@@ -91,6 +99,7 @@ docker/api/monolithic/
 
 - **Application**: `onix-ev-charging`
 - **HTTP Port**: `8001`
+- **Subscriber ID**: `ev-charging.sandbox1.com`
 - **Modules**:
   - `bapTxnReceiver`: Receives callbacks from CDS (Phase 1) and BPPs (Phase 2+)
     - Path: `/bap/receiver/`
@@ -98,6 +107,7 @@ docker/api/monolithic/
   - `bapTxnCaller`: Entry point for requests from BAP application
     - Path: `/bap/caller/`
     - Handles: `discover`, `select`, `init`, `confirm`, etc.
+- **OpenTelemetry**: OTLP endpoint `otel-collector-bap:4317`; metrics, traces, and logs with PII masking via `audit-fields.yaml`.
 
 #### Routing Configuration
 
@@ -115,13 +125,15 @@ docker/api/monolithic/
 
 - **Application**: `bpp-ev-charging`
 - **HTTP Port**: `8002`
+- **Subscriber ID**: `ev-charging.sandbox2.com`
 - **Modules**:
   - `bppTxnReceiver`: Receives requests from CDS (Phase 1) and BAP-ONIX (Phase 2+)
     - Path: `/bpp/receiver/`
     - Handles: `discover`, `select`, `init`, `confirm`, etc.
-  - `bppTxnCaller`: Sends responses to CDS/ONIX
+  - `bppTxnCaller`: Sends responses to CDS/BAP-ONIX
     - Path: `/bpp/caller/`
     - Handles: `on_discover`, `on_select`, `on_init`, `on_confirm`, etc.
+- **OpenTelemetry**: OTLP endpoint `otel-collector-bpp:4317`; metrics, traces, and logs with PII masking via `audit-fields.yaml`.
 
 #### Routing Configuration
 
@@ -132,6 +144,10 @@ docker/api/monolithic/
 **BPP Receiver Routing** (`bpp_receiver_routing.yaml`):
 - Phase 1: `discover` → Routes to BPP backend service
 - Phase 2+: Other requests → Routes to BPP backend service
+
+### Audit Fields (PII Masking)
+
+Each side has an `audit-fields.yaml` that defines which message fields are treated as PII and how they are masked in logs and traces (e.g. email, phone, address, payment details). See [config.md](./config.md#audit-fields-pii-masking) for structure and options.
 
 ## API Endpoints
 
@@ -161,24 +177,31 @@ docker/api/monolithic/
 
 The adapter uses the following environment variables:
 
-- `CONFIG_FILE`: Path to the adapter configuration file (default: `/app/config/adapter.yaml`)
+| Variable | Description |
+|----------|-------------|
+| `CONFIG_FILE` | Path to the adapter configuration file (default: `/app/config/adapter.yaml`) |
+| `REDIS_PASSWORD` | Redis password; must match the Redis service (`your-redis-password` in compose) |
+| `CONFIG_PATH` | Optional; base path for config. Default `./config` so BAP uses `./config/onix-bap`, BPP uses `./config/onix-bpp`. |
 
 ## Volume Mounts
 
-1. **Config Directory**: `../config/onix-{bap|bpp}:/app/config/onix-{bap|bpp}` - Mounts the entire config directory for routing files
-2. **Adapter Config**: `../config/onix-{bap|bpp}/adapter.yaml:/app/config/adapter.yaml:ro` - Mounts adapter.yaml to the expected location
-3. **Schema Directory**: `../../schemas:/app/schemas:ro` - Mounts schema files from the root `schemas/` directory for validation
+Paths are relative to the **onix-adaptor/** directory.
 
-**Note**: 
-- Config paths are relative to the `docker/api/monolithic/` directory
-- Schema path `../../schemas` points to the root-level `schemas/` directory containing `ev_charging_network/v1.0.0/` schema files
-- All config files are mounted read-only except the config directory itself (for symlink creation)
+| Mount (host) | Container | Service |
+|--------------|-----------|---------|
+| `${CONFIG_PATH:-./config}/onix-bap` or `onix-bpp` | `/app/config` | onix-bap-plugin / onix-bpp-plugin |
+| `../schemas` | `/app/schemas:ro` | onix-bap-plugin / onix-bpp-plugin |
+| `./otel-config.yml` | `/etc/otelcol/config.yaml:ro` | otel-collector-bap / otel-collector-bpp |
+
+The adapter config directory provides `adapter.yaml`, `audit-fields.yaml`, and the routing YAML files. The OTEL collector uses the single `otel-config.yml` in this folder for both BAP and BPP stacks.
 
 ## Network Configuration
 
-Both services use the `onix-network` bridge network for inter-container communication:
-- Redis services: `redis-onix-bap`, `redis-onix-bpp`
-- Onix adapters can communicate with other services on the same network
+All services use the **onix-network** bridge:
+- **BAP stack**: `redis-onix-bap`, `onix-bap-plugin`, `otel-collector-bap`
+- **BPP stack**: `redis-onix-bpp`, `onix-bpp-plugin`, `otel-collector-bpp`
+
+The adapter sends OTLP to its collector over this network (`otel-collector-bap:4317` or `otel-collector-bpp:4317`).
 
 ## Stopping Services
 
@@ -210,12 +233,17 @@ docker-compose -f docker-compose-onix-bap-plugin.yml -f docker-compose-onix-bpp-
    lsof -i :6380  # BPP Redis
    ```
 
-2. **Verify Docker images exist:**
+2. **Verify Docker image:**
    ```bash
-   docker images | grep onix
+   docker images | grep onix-adapter
    ```
 
-3. **Check container logs:**
+3. **OTEL collector:** If the adapter fails to send telemetry, ensure the collector is up and using `./otel-config.yml`:
+   ```bash
+   docker-compose -f docker-compose-onix-bap-plugin.yml logs otel-collector-bap
+   ```
+
+4. **Check container logs:**
    ```bash
    docker-compose -f docker-compose-onix-bap-plugin.yml logs
    docker-compose -f docker-compose-onix-bpp-plugin.yml logs
@@ -234,12 +262,17 @@ docker-compose -f docker-compose-onix-bap-plugin.yml -f docker-compose-onix-bpp-
    docker exec onix-bap-plugin cat /app/config/adapter.yaml
    ```
 
+3. **OTEL collector config:** Ensure `otel-config.yml` exists in onix-adaptor and is mounted:
+   ```bash
+   docker exec otel-collector-bap cat /etc/otelcol/config.yaml | head -20
+   ```
+
 ### Redis Connection Issues
 
 1. **Verify Redis is healthy:**
    ```bash
-   docker exec redis-onix-bap redis-cli ping
-   docker exec redis-onix-bpp redis-cli ping
+   docker exec redis-onix-bap redis-cli -a your-redis-password ping
+   docker exec redis-onix-bpp redis-cli -a your-redis-password ping
    ```
 
 2. **Check Redis logs:**
@@ -338,12 +371,12 @@ curl http://localhost:8002/health
 ### Verify Redis Connection
 
 ```bash
-# Test BAP Redis connection
-docker exec redis-onix-bap redis-cli ping
+# Test BAP Redis connection (password matches docker-compose: your-redis-password)
+docker exec redis-onix-bap redis-cli -a your-redis-password ping
 # Should return: PONG
 
 # Test BPP Redis connection
-docker exec redis-onix-bpp redis-cli ping
+docker exec redis-onix-bpp redis-cli -a your-redis-password ping
 # Should return: PONG
 ```
 
@@ -351,35 +384,35 @@ docker exec redis-onix-bpp redis-cli ping
 
 ### Changing Ports
 
-Edit the `ports` section in `docker-compose-onix-{bap|bpp}-plugin.yml`:
-
-```yaml
-ports:
-  - "YOUR_PORT:8001"  # For BAP
-  - "YOUR_PORT:8002"  # For BPP
-```
+Edit `ports` in the relevant compose file:
+- **BAP**: adapter `8001:8001`; collector `4317:4317`, `4318:4318`, etc.
+- **BPP**: adapter `8002:8002`; collector `4321:4317`, `4322:4318`, etc. (different host ports to avoid clashes if both stacks run)
 
 ### Updating Configuration
 
-1. Modify the YAML files in `config/onix-{bap|bpp}/`
-2. Restart the services:
+1. **Adapter**: Edit files in `config/onix-bap/` or `config/onix-bpp/` (`adapter.yaml`, `audit-fields.yaml`, routing). See [config.md](./config.md).
+2. **OTEL collector**: Edit `otel-config.yml` in this folder; both BAP and BPP stacks use it.
+3. **Restart** after changes:
    ```bash
-   docker-compose -f docker-compose-onix-{bap|bpp}-plugin.yml restart
+   docker-compose -f docker-compose-onix-bap-plugin.yml restart
+   # or
+   docker-compose -f docker-compose-onix-bpp-plugin.yml restart
    ```
 
 ### Using Custom Images
 
-Update the `image` field in `docker-compose-onix-{bap|bpp}-plugin.yml`:
+Update the `image` field in `docker-compose-onix-bap-plugin.yml` or `docker-compose-onix-bpp-plugin.yml`:
 
 ```yaml
-image: your-registry/onix-{bap|bpp}-plugin:your-tag
+image: your-registry/onix-adapter:your-tag
 ```
+
+Both BAP and BPP use the same image (`manendrapalsingh/onix-adapter:v0.9.5`); only the mounted config differs.
 
 ## Next Steps
 
-- For RabbitMQ integration: See [RabbitMQ Integration](./../../rabbitmq/README.md)
-- For Kafka integration: See [Kafka Integration](./../../kafka/README.md)
-- For microservice architecture: See [Microservice API](./../microservice/README.md)
+- **Full config reference**: [config.md](./config.md) — plugins, OTLP, audit-fields, schema validator, routing.
+- **OTEL**: Collector config is `./otel-config.yml` in this folder. Run docker-compose from **onix-adaptor/** so that path resolves.
 
 ## Additional Resources
 

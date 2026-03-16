@@ -123,6 +123,36 @@ config:
     encrPrivateKey: ""
     encrPublicKey: ""
 
+# OpenTelemetry configuration for the adapter container
+otel:
+  enabled: false
+  insecure: "true"
+  exporterEndpoint: ""
+  metricsPort: 0
+
+# OpenTelemetry Collector deployment
+otelCollector:
+  enabled: false
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+  ports:
+    grpc: 4317
+    http: 4318
+    healthCheck: 13133
+    zpages: 55679
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  config: ""
+
 # Node selector
 nodeSelector: {}
 

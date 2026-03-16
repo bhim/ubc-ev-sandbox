@@ -6,6 +6,8 @@ This document describes the ONIX adapter configuration for Kafka-based deploymen
 
 - **BAP Adapter**: `config/onix-bap/adapter.yaml`
 - **BPP Adapter**: `config/onix-bpp/adapter.yaml`
+- **BAP Audit Fields**: `config/onix-bap/audit-fields.yaml`
+- **BPP Audit Fields**: `config/onix-bpp/audit-fields.yaml`
 
 ---
 
@@ -13,10 +15,10 @@ This document describes the ONIX adapter configuration for Kafka-based deploymen
 
 | Key | Value | Description |
 |-----|-------|-------------|
-| `appName` | `onix-ev-charging` | Application identifier for logging and identification |
+| `appName` | `onix-ev-charging` (BAP) / `bpp-ev-charging` (BPP) | Application identifier for logging and identification |
 | `log.level` | `debug` | Logging verbosity level (debug/info/warn/error) |
 | `log.destinations[].type` | `stdout` | Log output destination |
-| `log.contextKeys` | `transaction_id, message_id, subscriber_id, module_id` | Keys included in structured logs for tracing |
+| `log.contextKeys` | `transaction_id, message_id, subscriber_id, module_id, parent_id` | Keys included in structured logs for tracing |
 
 ---
 
@@ -41,16 +43,56 @@ This document describes the ONIX adapter configuration for Kafka-based deploymen
 
 ---
 
-## OpenTelemetry Plugin
+## OpenTelemetry Plugin (OTLP)
+
+Metrics, traces, and logs are sent via OTLP to the OTEL collector; no standalone metrics port is used.
 
 | Key | Value | Description |
 |-----|-------|-------------|
 | `plugins.otelsetup.id` | `otelsetup` | OpenTelemetry plugin identifier |
-| `plugins.otelsetup.config.serviceName` | `beckn-onix` | Service name for telemetry |
+| `plugins.otelsetup.config.serviceName` | `onix-ev-charging-bap` (BAP) / `onix-ev-charging-bpp` (BPP) | Service name for telemetry |
 | `plugins.otelsetup.config.serviceVersion` | `1.0.0` | Service version for telemetry |
-| `plugins.otelsetup.config.enableMetrics` | `true` | Enable Prometheus metrics collection |
 | `plugins.otelsetup.config.environment` | `development` | Environment name (development/staging/production) |
-| `plugins.otelsetup.config.metricsPort` | `9003` (BAP) / `9004` (BPP) | Prometheus metrics endpoint port |
+| `plugins.otelsetup.config.domain` | `ev_charging` | Domain for telemetry classification |
+| `plugins.otelsetup.config.otlpEndpoint` | `otel-collector-bap:4317` (BAP) / `otel-collector-bpp:4317` (BPP) | OTLP gRPC endpoint for the OTEL collector |
+| `plugins.otelsetup.config.enableMetrics` | `true` | Enable metrics export |
+| `plugins.otelsetup.config.networkMetricsGranularity` | `2min` | Granularity for network metrics |
+| `plugins.otelsetup.config.networkMetricsFrequency` | `4min` | Frequency for network metrics aggregation |
+| `plugins.otelsetup.config.enableTracing` | `true` | Enable trace export |
+| `plugins.otelsetup.config.enableLogs` | `true` | Enable log export |
+| `plugins.otelsetup.config.timeInterval` | `5` | Time interval (seconds) for periodic telemetry |
+| `plugins.otelsetup.config.auditFieldsConfig` | `/app/config/audit-fields.yaml` | Path to PII/audit field masking config for logs and traces |
+
+---
+
+## Audit Fields (PII Masking)
+
+The file referenced by `auditFieldsConfig` defines which fields are treated as PII and how they are masked in logs and traces.
+
+### Config file
+
+- **Path**: `config/onix-bap/audit-fields.yaml` (BAP) / `config/onix-bpp/audit-fields.yaml` (BPP)
+- **Mounted in container**: `/app/config/audit-fields.yaml`
+
+### Structure
+
+| Section | Description |
+|--------|-------------|
+| `piiPatterns` | Named patterns (regex + mask type) for email, phone, tax_id, account, generic |
+| `piiPaths` | JSON paths into the message (e.g. `message.order.beckn:buyer.beckn:email`) mapped to a pattern |
+
+### Pattern types
+
+- **replace**: Replace value with a fixed mask (e.g. `***@***.***` for email).
+- **last4**: Show only last 4 characters.
+
+### Example paths covered
+
+- Buyer: email, telephone, displayName, taxID  
+- Payment: paymentURL, txnRef, paidAt, settlement accounts (accountHolderName, accountNumber, vpa, paymentURL)  
+- Fulfillment: address, streetAddress, extendedAddress, addressLocality, postalCode  
+- Support: name, phone, email  
+- Seller/provider: supportEmail, supportPhone, gstNumber  
 
 ---
 
@@ -116,6 +158,14 @@ Receives HTTP requests from BPP-ONIX and publishes to BAP Backend via Kafka. Use
 |-----|-------|-------------|
 | `plugins.router.id` | `router` | Router plugin identifier |
 | `plugins.router.config.routingConfig` | `/app/config/bapTxnReciever-routing.yaml` | Path to receiver routing rules file |
+
+### Middleware
+
+| Key | Value | Description |
+|-----|-------|-------------|
+| `plugins.middleware[].id` | `reqpreprocessor` | Request preprocessor middleware |
+| `plugins.middleware[].config.contextKeys` | `transaction_id, message_id, parent_id` | JSON keys to propagate in context (e.g. for tracing) |
+| `plugins.middleware[].config.role` | `bap` | Role for request preprocessing |
 
 ### Kafka Publisher Plugin
 

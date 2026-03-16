@@ -681,6 +681,61 @@ mockServices:
 - When deploying via Helm charts, these values can be used to generate the deployment manifests
 - When deploying via docker-compose, these values should match the docker-compose.yml configuration
 
+#### OpenTelemetry / OTEL Alignment with Docker
+
+The underlying `helm/` chart now supports a toggleable OTEL layer that mirrors the Docker sandbox configuration:
+
+- In-process OTEL metrics via the `otelsetup` plugin (metrics ports **9003** / **9004**)
+- Optional OTLP export env vars on the adapter container:
+  - `OTEL_EXPORTER_OTLP_INSECURE`
+  - `OTEL_EXPORTER_OTLP_ENDPOINT`
+- Optional per-component OTEL Collector deployments (BAP/BPP) using the same `otel-config.yml` pipelines as Docker
+
+By default, **OTEL is disabled** at the Helm level to ensure the existing sandbox deployments behave exactly as before.
+
+To enable OTEL for the sandbox (matching the Docker setup) you can:
+
+- Turn on OTEL in the base chart:
+
+  ```bash
+  # BAP
+  helm upgrade --install onix-bap ../helm \
+    -f ../helm/values-bap.yaml \
+    -f values-sandbox.yaml \
+    --set component=bap \
+    --set fullnameOverride=onix-bap \
+    --set otel.enabled=true \
+    --set otelCollector.enabled=true \
+    --namespace ev-charging-sandbox \
+    --create-namespace
+
+  # BPP
+  helm upgrade --install onix-bpp ../helm \
+    -f ../helm/values-bpp.yaml \
+    -f values-sandbox.yaml \
+    --set component=bpp \
+    --set fullnameOverride=onix-bpp \
+    --set otel.enabled=true \
+    --set otelCollector.enabled=true \
+    --namespace ev-charging-sandbox
+  ```
+
+- Optionally, override at the sandbox layer by uncommenting the OTEL block in `values-sandbox.yaml`:
+
+  ```yaml
+  # values-sandbox.yaml
+  # otel:
+  #   enabled: true
+  # otelCollector:
+  #   enabled: true
+  ```
+
+When enabled, the rendered Kubernetes resources will be aligned with the respective Docker compose files for:
+
+- Metrics ports (9003/9004) exposed on pod and Service
+- OTLP exporter env vars pointing at the per-component OTEL Collector Service
+- Collector configuration that forwards filtered signals to the network collector (`otel-collector-network`).
+
 ## Service Endpoints
 
 ### Service Exposure Configuration

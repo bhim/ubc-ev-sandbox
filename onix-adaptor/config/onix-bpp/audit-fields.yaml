@@ -1,95 +1,75 @@
-auditRules:
-  default:
-    - context.transaction_id
-    - context.action
-    - context.bap_id
-    - context.bpp_id
-    - context.timestamp
-    - error.message
-    - error.code
-  on_status:
-    # --- Context (Traceability) ---
-    - context.transaction_id
-    - context.message_id
-    - context.action
-    - context.timestamp
-    - context.bap_id
-    - context.bpp_id
-    # --- Order-level JSON-LD ---
-    - message.order.@context
-    - message.order.beckn:id
-    - message.order.beckn:seller
-    - message.order.beckn:orderStatus
-    # --- Order Items – Quantity (Business) ---
-    - message.order.beckn:orderItems.beckn:quantity.unitCode
-    - message.order.beckn:orderItems.beckn:quantity.unitQuantity
-    - message.order.beckn:orderItems.beckn:price.value
-    - message.order.beckn:orderItems.beckn:price.currency
-    - message.order.beckn:orderItems.beckn:price.applicableQuantity.unitCode
-    - message.order.beckn:orderItems.beckn:price.applicableQuantity.unitQuantity
-    # --- Order Value (Business) ---
-    - message.order.beckn:orderValue.value
-    - message.order.beckn:orderValue.currency
-    # --- Payment (Business) ---
-    - message.order.beckn:payment.beckn:id
-    - message.order.beckn:payment.beckn:amount.value
-    - message.order.beckn:payment.beckn:amount.currency
-    - message.order.beckn:payment.beckn:txnRef
-    - message.order.beckn:payment.beckn:paidAt
-    - message.order.beckn:payment.beckn:beneficiary
-    - message.order.beckn:payment.beckn:paymentStatus
-  on_update:
-    # --- Context (Traceability) ---
-    - context.transaction_id
-    - context.message_id
-    - context.action
-    - context.timestamp
-    - context.bap_id
-    - context.bpp_id
-    # --- Order-level JSON-LD ---
-    - message.order.@context
-    - message.order.beckn:id
-    - message.order.beckn:seller
-    - message.order.beckn:orderStatus
-    # --- Order Items – Quantity (Business) ---
-    - message.order.beckn:orderItems.beckn:quantity.unitCode
-    - message.order.beckn:orderItems.beckn:quantity.unitQuantity
-    - message.order.beckn:orderItems.beckn:price.value
-    - message.order.beckn:orderItems.beckn:price.currency
-    - message.order.beckn:orderItems.beckn:price.applicableQuantity.unitCode
-    - message.order.beckn:orderItems.beckn:price.applicableQuantity.unitQuantity
-    # --- Order Value (Business) ---
-    - message.order.beckn:orderValue.value
-    - message.order.beckn:orderValue.currency
-    # --- Payment (Business) ---
-    - message.order.beckn:payment.beckn:id
-    - message.order.beckn:payment.beckn:amount.value
-    - message.order.beckn:payment.beckn:amount.currency
-    - message.order.beckn:payment.beckn:txnRef
-    - message.order.beckn:payment.beckn:paidAt
-    - message.order.beckn:payment.beckn:beneficiary
-    - message.order.beckn:payment.beckn:paymentStatus
-    # --- Fulfillment ---
-    - message.order.beckn:fulfilment.beckn:id
-    - message.order.beckn:fulfiment.beckn:deliveryAttributes.sessionStatus
+piiPatterns:
+  - name: email
+    regex: "^[\\w.+-]+@[\\w.-]+\\.[a-zA-Z]{2,}$"
+    maskType: replace
+    mask: "***@***.***"
+  - name: phone
+    regex: "^\\+?[0-9][0-9\\-\\s]{7,15}$"
+    maskType: last4
+  - name: tax_id
+    regex: "^[A-Z0-9]{5,20}$"
+    maskType: last4
+  - name: account
+    regex: "^[0-9]{8,20}$"
+    maskType: last4
+  - name: generic
+    regex: "."
+    maskType: replace
+    mask: "[MASKED]"
 
-  rating:
-    - context.transaction_id
-    - context.message_id
-    - context.action
-    - context.timestamp
-    - context.bap_id
-    - context.bpp_id
-    - message.ratings.id.
-    - message.ratings.id.ratingValue
-    - message.ratings.category
-  support:
-    - context.transaction_id
-    - context.message_id
-    - context.action
-    - context.timestamp
-    - context.bap_id
-    - context.bpp_id
-    - message.refId
-    - message.refType
+piiPaths:
+  # Buyer identity
+  - path: message.order.beckn:buyer.beckn:email
+    pattern: email
+  - path: message.order.beckn:buyer.beckn:telephone
+    pattern: phone
+  - path: message.order.beckn:buyer.beckn:displayName
+    pattern: generic
+  - path: message.order.beckn:buyer.beckn:taxID
+    pattern: tax_id
 
+  # Payment
+  - path: message.order.beckn:payment.beckn:paymentURL
+    pattern: generic
+  - path: message.order.beckn:payment.beckn:txnRef
+    pattern: last4
+  - path: message.order.beckn:payment.beckn:paidAt
+    pattern: generic
+
+  # Fulfillment address
+  - path: message.order.beckn:fulfillment.beckn:deliveryAttributes.address
+    pattern: generic
+  - path: message.order.beckn:fulfillment.beckn:deliveryAttributes.address.streetAddress
+    pattern: generic
+  - path: message.order.beckn:fulfillment.beckn:deliveryAttributes.address.extendedAddress
+    pattern: generic
+  - path: message.order.beckn:fulfillment.beckn:deliveryAttributes.address.addressLocality
+    pattern: generic
+  - path: message.order.beckn:fulfillment.beckn:deliveryAttributes.address.postalCode
+    pattern: generic
+
+  # SupportInfo
+  - path: message.support.name
+    pattern: generic
+  - path: message.support.phone
+    pattern: phone
+  - path: message.support.email
+    pattern: email
+
+  # Provider attributes (ChargingPointOperator)
+  - path: message.order.beckn:seller.beckn:providerAttributes.supportEmail
+    pattern: email
+  - path: message.order.beckn:seller.beckn:providerAttributes.supportPhone
+    pattern: phone
+  - path: message.order.beckn:seller.beckn:providerAttributes.gstNumber
+    pattern: tax_id
+
+  # PaymentSettlement (in payment attributes)
+  - path: message.order.beckn:payment.beckn:paymentAttributes.settlementAccounts.accountHolderName
+    pattern: generic
+  - path: message.order.beckn:payment.beckn:paymentAttributes.settlementAccounts.accountNumber
+    pattern: account
+  - path: message.order.beckn:payment.beckn:paymentAttributes.settlementAccounts.vpa
+    pattern: generic
+  - path: message.order.beckn:payment.beckn:paymentAttributes.settlementAccounts.paymentURL
+    pattern: generic

@@ -7,7 +7,7 @@ This guide demonstrates how to deploy the **onix-adapter** using **Helm charts**
 - **Kafka Integration**: Uses Kafka for async message-based communication
 - **KRaft Mode**: Kafka runs without Zookeeper using KRaft consensus protocol
 - **Schema Validation v2**: Uses `schemav2validator` with URL-based schema validation from Beckn protocol specifications
-- **OpenTelemetry Metrics**: Built-in OTEL metrics support (port 9003 for BAP, 9004 for BPP)
+- **OpenTelemetry Metrics & Traces**: Built-in OTEL metrics support (port 9003 for BAP, 9004 for BPP) with optional OTLP export and per-component OTEL Collector deployments controlled via Helm values
 - **Secret Management**: Production-ready secret management with Kubernetes Secrets and fallback to hardcoded values
 - **Routing Configuration**: Flexible routing with Phase 1 (CDS aggregation) and Phase 2+ (direct routing) support
 - **BAP/BPP Support**: Separate configurations for BAP and BPP adapters with component-specific settings
@@ -242,6 +242,82 @@ Key settings:
 - `appName`: "onix-ev-charging" (BAP) or "bpp-ev-charging" (BPP)
 - `http.port`: 8001 (BAP) or 8002 (BPP)
 - `plugins.otelsetup.config.metricsPort`: "9003" (BAP) or "9004" (BPP)
+
+### OpenTelemetry / Observability (Docker Alignment)
+
+The Kafka Docker sandbox (`sandbox-kafka/docker-compose.yml`) runs each adapter with:
+
+- OTEL metrics on ports **9003** (BAP) / **9004** (BPP)
+- OTLP export via:
+  - `OTEL_EXPORTER_OTLP_INSECURE=true`
+  - `OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector-bap:4317` or `otel-collector-bpp:4317`
+- A per-component OTEL Collector (`otel/opentelemetry-collector-contrib:latest`) using a shared `otel-config.yml`
+
+The `helm-kafka/` chart mirrors this using two value blocks in `values.yaml`:
+
+```yaml
+otel:
+  enabled: false          # Default: keep existing behavior (no OTLP export)
+  insecure: "true"
+  exporterEndpoint: ""    # Auto-computed when empty
+  metricsPort: 0          # Overridden per component
+
+otelCollector:
+  enabled: false          # Default: do not deploy collectors
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: latest
+  ports:
+    grpc: 4317
+    http: 4318
+    healthCheck: 13133
+    zpages: 55679
+  config: ""              # Overridden per component
+```
+
+Component-specific values already set the correct ports and collector config to match the Docker compose files:
+
+- `values-bap.yaml`
+  - `otel.metricsPort: 9003`
+  - `otelCollector.config: |` – inline copy of the BAP `otel-config.yml`
+- `values-bpp.yaml`
+  - `otel.metricsPort: 9004`
+  - `otelCollector.config: |` – same collector pipeline for BPP
+
+When **enabled**, the chart will:
+
+- Add `OTEL_EXPORTER_OTLP_INSECURE` and `OTEL_EXPORTER_OTLP_ENDPOINT` env vars to the adapter container
+- Expose the metrics port on the pod and Service
+- Deploy a per-component OTEL Collector `Deployment` + `Service`:
+  - BAP: `onix-otel-collector-bap`
+  - BPP: `onix-otel-collector-bpp`
+
+#### Enabling OTEL (BAP Kafka Adapter)
+
+```bash
+helm upgrade --install onix-bap-kafka ./helm-kafka \
+  -f ./helm-kafka/values-bap.yaml \
+  --set otel.enabled=true \
+  --set otelCollector.enabled=true
+```
+
+#### Enabling OTEL (BPP Kafka Adapter)
+
+```bash
+helm upgrade --install onix-bpp-kafka ./helm-kafka \
+  -f ./helm-kafka/values-bpp.yaml \
+  --set otel.enabled=true \
+  --set otelCollector.enabled=true \
+  --set kafka.enabled=false   # BPP shares Kafka from BAP
+```
+
+#### Leaving OTEL Disabled (Current Default)
+
+If `otel.enabled` and `otelCollector.enabled` remain `false`:
+
+- No OTEL Collector resources are deployed
+- No OTLP exporter env vars are injected
+- The existing in-process OTEL metrics plugin behavior (metricsPort in adapter.yaml) remains unchanged, preserving current deployments.
 
 ### Routing Configuration
 

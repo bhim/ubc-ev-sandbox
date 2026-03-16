@@ -441,6 +441,62 @@ This file contains sandbox-specific overrides for the Helm chart. It includes:
 - Kafka UI configuration
 - Service configurations with Kubernetes service names
 
+#### OpenTelemetry / OTEL Alignment with Docker
+
+The underlying `helm-kafka/` chart now includes a toggleable OTEL layer that aligns with the Kafka Docker sandbox (`sandbox-kafka/docker-compose.yml`):
+
+- In-process OTEL metrics via the `otelsetup` plugin (metrics ports **9003** / **9004**)
+- Optional OTLP export env vars on the adapter container:
+  - `OTEL_EXPORTER_OTLP_INSECURE`
+  - `OTEL_EXPORTER_OTLP_ENDPOINT`
+- Optional per-component OTEL Collector deployments (BAP/BPP) using the same `otel-config.yml` pipelines as Docker
+
+By default, OTEL is **disabled** at the chart level so current sandbox behavior is unchanged.
+
+To enable OTEL in the Kafka sandbox, you can:
+
+- Turn on OTEL when deploying the adapters:
+
+  ```bash
+  # BAP (deploys Kafka, Redis, Kafka UI and BAP adapter)
+  helm upgrade --install onix-bap ../helm-kafka \
+    -f ../helm-kafka/values-bap.yaml \
+    -f values-sandbox.yaml \
+    --set component=bap \
+    --set fullnameOverride=onix \
+    --set otel.enabled=true \
+    --set otelCollector.enabled=true \
+    --namespace ev-charging-sandbox \
+    --create-namespace
+
+  # BPP (shares Kafka and Redis from BAP)
+  helm upgrade --install onix-bpp ../helm-kafka \
+    -f ../helm-kafka/values-bpp.yaml \
+    -f values-sandbox.yaml \
+    --set component=bpp \
+    --set fullnameOverride=onix \
+    --set otel.enabled=true \
+    --set otelCollector.enabled=true \
+    --set kafka.enabled=false \
+    --namespace ev-charging-sandbox
+  ```
+
+- Optionally, override at the sandbox layer by uncommenting the OTEL block in `values-sandbox.yaml`:
+
+  ```yaml
+  # values-sandbox.yaml
+  # otel:
+  #   enabled: true
+  # otelCollector:
+  #   enabled: true
+  ```
+
+When enabled, the rendered Kubernetes manifests will include:
+
+- Metrics ports **9003/9004** exposed on the adapter pods and Services
+- OTLP exporter env vars pointing at the per-component OTEL Collector Services
+- Collector configurations that forward filtered signals to the network collector (`otel-collector-network`), mirroring the docker-compose behavior.
+
 ### Config Files
 
 - **`mock-registry_config.yml`**: Registry service configuration

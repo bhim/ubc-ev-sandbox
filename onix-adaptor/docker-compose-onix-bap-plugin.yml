@@ -18,7 +18,7 @@ services:
 
   onix-bap-plugin:
     # Use pre-built image from Docker Hub
-    image: manendrapalsingh/onix-adapter:v0.9.3
+    image: manendrapalsingh/onix-adapter:v0.9.5
     container_name: onix-bap-plugin
     ports:
       - "8001:8001"
@@ -30,12 +30,32 @@ services:
     environment:
       - CONFIG_FILE=/app/config/adapter.yaml
       - REDIS_PASSWORD=your-redis-password
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector-bap:4317
     restart: unless-stopped
     depends_on:
       redis-onix-bap:
         condition: service_healthy
+      otel-collector-bap:
+        condition: service_started
     networks:
       - onix-network
+
+  # OTEL Collector for BAP - receives OTLP from onix-bap-plugin
+  otel-collector-bap:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector-bap
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-config.yml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "13133:13133"
+      - "55679:55679"
+    networks:
+      - onix-network
+    restart: unless-stopped
 
 networks:
   onix-network:

@@ -16,6 +16,12 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
+    {{- if and .Values.otel.enabled (gt (int .Values.otel.metricsPort) 0) }}
+    - port: {{ .Values.otel.metricsPort }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+    {{- end }}
   selector:
     {{- include "onix-api-monolithic.selectorLabels" . | nindent 4 }}
     component: {{ .Values.component }}

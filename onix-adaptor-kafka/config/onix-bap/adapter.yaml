@@ -9,6 +9,7 @@ log:
     - message_id
     - subscriber_id
     - module_id
+    - parent_id
 
 # HTTP configuration is required for bapTxnReceiver to receive HTTP requests from BPP-ONIX plugin
 # The bapTxnReceiver module uses handler type "std" which requires HTTP server
@@ -22,15 +23,23 @@ http:
 pluginManager:
   root: /app/plugins
 
+# OpenTelemetry (OTLP) - metrics and traces sent to OTEL collector
 plugins:
   otelsetup:
     id: otelsetup
     config:
-      serviceName: "beckn-onix"
+      serviceName: "onix-ev-charging-bap"
       serviceVersion: "1.0.0"
-      enableMetrics: "true"
       environment: "development"
-      metricsPort: "9003"
+      domain: "ev_charging"
+      otlpEndpoint: "otel-collector-bap:4317"
+      enableMetrics: "true"
+      networkMetricsGranularity: "2min"
+      networkMetricsFrequency: "4min"
+      enableTracing: "true"
+      enableLogs: "true"
+      timeInterval: "5"
+      auditFieldsConfig: "/app/config/audit-fields.yaml"
 
 modules:
   # BAP Receiver - Receives HTTP requests from BPP-ONIX and publishes to BAP Backend via Kafka
@@ -102,7 +111,7 @@ modules:
         middleware:
           - id: reqpreprocessor
             config:
-              uuidKeys: transaction_id,message_id
+              contextKeys: transaction_id,message_id,parent_id
               role: bap
       steps:
         # - validateSign
@@ -195,7 +204,7 @@ modules:
         middleware:
           - id: reqpreprocessor
             config:
-              uuidKeys: transaction_id,message_id
+              contextKeys: transaction_id,message_id,parent_id
               role: bap
       steps:
         - validateSchema

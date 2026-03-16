@@ -28,6 +28,15 @@
 # ============================================================================
 # Override fullname to get consistent service name: onix-kafka
 fullnameOverride: onix
+
+# OpenTelemetry Configuration
+# Uncomment to enable OTEL collector and exporter for this sandbox deployment.
+# The otel and otelCollector values are set per-component in the base chart's
+# values-bap.yaml / values-bpp.yaml. Override here to enable them in sandbox:
+# otel:
+#   enabled: true
+# otelCollector:
+#   enabled: true
 # kafka:
 #   # enabled is controlled by values-bap.yaml (true) and values-bpp.yaml (false)
 #   image:
