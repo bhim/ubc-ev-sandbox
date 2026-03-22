@@ -36,10 +36,10 @@ plugins:
   otelsetup:
     id: otelsetup
     config:
-      serviceName: "onix-ev-charging"
-      serviceVersion: "1.0.0"
-      environment: "development"
-      domain: "ev_charging"
+      serviceName: "onix"
+      serviceVersion: "v0.9.5"
+      environment: "production"
+      domain: "UBC"
       otlpEndpoint: "otel-collector:4317"
       enableMetrics: "true"
       networkMetricsGranularity: "2min"
@@ -254,15 +254,15 @@ exporters:
 
   # Network-level: forward to second collector (with OAuth2 Bearer token from Hydra)
   otlp_http/collector2:
-    endpoint: http://otel-collector-network:4318
+    endpoint: https://obs.prod.ubc.nbsl.org.in
     auth:
       authenticator: oauth2client
     compression: gzip
 
 extensions:
   oauth2client:
-    token_url: ${env:AUTH_TOKEN_URL}
-    client_id: otel-collector
+    token_url: https://obs-auth.prod.ubc.nbsl.org.in/oauth2/token
+    client_id: ${env:OTEL_CLIENT_ID}
     client_secret: ${env:OTEL_CLIENT_SECRET}
     endpoint_params:
       audience: otel-collector-network
